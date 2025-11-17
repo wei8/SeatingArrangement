@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画布调整测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .seating-area {
+            min-width: 800px;
+            min-height: 600px;
+            background: white;
+            border: 2px solid #ddd;
+            position: relative;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+        }
+        .table {
+            width: 350px;
+            height: 350px;
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #87CEEB, #4682B4);
+            border: 3px solid white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            cursor: move;
+        }
+        .controls {
+            margin: 20px 0;
+            text-align: center;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        .info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            border-left: 4px solid #007bff;
+        }
+        .console {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>画布调整功能测试</h1>
+        
+        <div class="info">
+            <h3>测试说明：</h3>
+            <p>这个测试演示了刷新后如何根据餐桌的实际位置调整画布大小。</p>
+            <ul>
+                <li>点击"添加测试餐桌"创建几个在不同位置的餐桌</li>
+                <li>点击"调整画布"会根据餐桌位置自动计算合适的画布大小</li>
+                <li>点击"模拟刷新"会重新加载餐桌数据并调整画布</li>
+                <li>观察控制台输出可以看到详细的调整过程</li>
+            </ul>
+        </div>
+        
+        <div class="controls">
+            <button class="btn-primary" onclick="addTestTables()">添加测试餐桌</button>
+            <button class="btn-secondary" onclick="adjustCanvas()">调整画布</button>
+            <button class="btn-success" onclick="simulateRefresh()">模拟刷新</button>
+            <button class="btn-secondary" onclick="clearConsole()">清空控制台</button>
+        </div>
+        
+        <div id="console" class="console">
+            <div>控制台输出：</div>
+        </div>
+        
+        <div id="seatingArea" class="seating-area">
+            <!-- 餐桌将在这里动态生成 -->
+        </div>
+    </div>
+
+    <script>
+        let tables = [];
+        let tableIdCounter = 1;
+        
+        function log(message) {
+            const console = document.getElementById('console');
+            const timestamp = new Date().toLocaleTimeString();
+            console.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            console.scrollTop = console.scrollHeight;
+        }
+        
+        function clearConsole() {
+            document.getElementById('console').innerHTML = '<div>控制台输出：</div>';
+        }
+        
+        function addTestTables() {
+            log('=== 开始添加测试餐桌 ===');
+            
+            // 清除现有餐桌
+            tables = [];
+            tableIdCounter = 1;
+            document.getElementById('seatingArea').innerHTML = '';
+            
+            // 创建几个在不同位置的测试餐桌
+            const testTables = [
+                { name: '主桌', x: 100, y: 100, seatCount: 12 },
+                { name: '副桌1', x: 500, y: 200, seatCount: 10 },
+                { name: '副桌2', x: 200, y: 500, seatCount: 8 },
+                { name: '副桌3', x: 800, y: 400, seatCount: 12 }
+            ];
+            
+            testTables.forEach(tableData => {
+                const table = {
+                    id: tableIdCounter++,
+                    name: tableData.name,
+                    seatCount: tableData.seatCount,
+                    x: tableData.x,
+                    y: tableData.y,
+                    guests: []
+                };
+                tables.push(table);
+                createTableElement(table);
+                log(`创建餐桌: ${table.name} 位置: (${table.x}, ${table.y})`);
+            });
+            
+            log('=== 测试餐桌添加完成 ===');
+        }
+        
+        function createTableElement(table) {
+            const tableDiv = document.createElement('div');
+            tableDiv.className = 'table';
+            tableDiv.id = `table-${table.id}`;
+            tableDiv.style.left = table.x + 'px';
+            tableDiv.style.top = table.y + 'px';
+            tableDiv.innerHTML = table.name;
+            
+            document.getElementById('seatingArea').appendChild(tableDiv);
+        }
+        
+        function adjustCanvas() {
+            log('=== 开始调整画布大小 ===');
+            
+            const seatingArea = document.getElementById('seatingArea');
+            log(`当前餐桌数量: ${tables.length}`);
+            
+            if (tables.length === 0) {
+                log('没有餐桌，使用默认尺寸');
+                seatingArea.style.minWidth = '800px';
+                seatingArea.style.minHeight = '600px';
+                return;
+            }
+            
+            // 基于实际餐桌位置计算画布大小
+            const tableWidth = 350;
+            const tableHeight = 350;
+            const margin = 40;
+            const extraMargin = 100;
+            
+            let minX = Infinity, minY = Infinity;
+            let maxX = -Infinity, maxY = -Infinity;
+            
+            tables.forEach((table, index) => {
+                log(`餐桌 ${index + 1}: ${table.name} 位置: (${table.x}, ${table.y})`);
+                minX = Math.min(minX, table.x);
+                minY = Math.min(minY, table.y);
+                maxX = Math.max(maxX, table.x + tableWidth);
+                maxY = Math.max(maxY, table.y + tableHeight);
+            });
+            
+            log(`计算边界: minX=${minX}, minY=${minY}, maxX=${maxX}, maxY=${maxY}`);
+            
+            const contentWidth = maxX - minX;
+            const contentHeight = maxY - minY;
+            const neededWidth = contentWidth + margin * 2 + extraMargin;
+            const neededHeight = contentHeight + margin * 2 + extraMargin;
+            
+            const finalWidth = Math.max(800, neededWidth);
+            const finalHeight = Math.max(600, neededHeight);
+            
+            log(`内容尺寸: ${contentWidth}x${contentHeight}`);
+            log(`需要尺寸: ${neededWidth}x${neededHeight}`);
+            log(`最终尺寸: ${finalWidth}x${finalHeight}`);
+            
+            seatingArea.style.minWidth = finalWidth + 'px';
+            seatingArea.style.minHeight = finalHeight + 'px';
+            
+            log('=== 画布调整完成 ===');
+        }
+        
+        function simulateRefresh() {
+            log('=== 模拟页面刷新 ===');
+            log('保存当前餐桌数据到本地存储');
+            
+            // 保存数据到本地存储
+            localStorage.setItem('testTables', JSON.stringify(tables));
+            
+            // 清除当前显示
+            document.getElementById('seatingArea').innerHTML = '';
+            tables = [];
+            
+            // 从本地存储恢复数据
+            log('从本地存储恢复数据');
+            const savedTables = localStorage.getItem('testTables');
+            if (savedTables) {
+                tables = JSON.parse(savedTables);
+                log(`恢复 ${tables.length} 个餐桌`);
+                
+                // 重新渲染餐桌
+                tables.forEach(table => {
+                    createTableElement(table);
+                    log(`恢复餐桌: ${table.name} 位置: (${table.x}, ${table.y})`);
+                });
+                
+                // 调整画布大小
+                log('根据恢复的餐桌位置调整画布大小');
+                adjustCanvas();
+            } else {
+                log('没有找到保存的数据');
+            }
+            
+            log('=== 刷新模拟完成 ===');
+        }
+        
+        // 页面加载时尝试恢复数据
+        window.addEventListener('load', () => {
+            log('页面加载完成');
+            const savedTables = localStorage.getItem('testTables');
+            if (savedTables) {
+                log('发现保存的餐桌数据，自动恢复');
+                tables = JSON.parse(savedTables);
+                tables.forEach(table => createTableElement(table));
+                adjustCanvas();
+            }
+        });
+    </script>
+</body>
+</html>

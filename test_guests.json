@@ -1,0 +1,27 @@
+[
+  {
+    "name": "王小明",
+    "position": "技术总监",
+    "company": "科技创新有限公司"
+  },
+  {
+    "name": "李小红",
+    "position": "市场经理",
+    "company": "营销咨询公司"
+  },
+  {
+    "name": "张小华",
+    "position": "财务总监",
+    "company": "金融投资集团"
+  },
+  {
+    "name": "刘小强",
+    "position": "人事经理",
+    "company": "人力资源服务"
+  },
+  {
+    "name": "陈小美",
+    "position": "销售总监",
+    "company": "贸易发展公司"
+  }
+]
