@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>银保会议排座系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-1px);
+        }
+
+        .header-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .sidebar h3 {
+            margin-bottom: 1rem;
+            color: #2c3e50;
+            font-size: 1.1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 0.9rem;
+        }
+
+        .main-area {
+            flex: 1;
+            padding: 2rem;
+            overflow: auto;
+            background: #f8f9fa;
+            min-width: 0;
+            min-height: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            /* 防止闪烁 */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .meeting-hall {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            padding: 2rem;
+            position: relative;
+            min-height: 600px;
+            height: auto;
+            margin: 0 auto;
+            width: 100%;
+            min-width: 800px;
+            max-width: 1200px;
+            box-sizing: border-box;
+            display: block;
+            transition: none; /* 禁用过渡效果避免闪烁 */
+        }
+
+        .stage {
+            background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(142, 68, 173, 0.3);
+        }
+
+        .seating-area {
+            position: relative;
+        }
+
+        .leader-section {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            padding: 0.5rem 1rem;
+            background: #ecf0f1;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+
+        .seat-row {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .seat {
+            width: clamp(35px, 4vw, 50px);
+            height: clamp(35px, 4vw, 50px);
+            background: #3498db;
+            border: 2px solid #2980b9;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            font-size: clamp(0.7rem, 1.5vw, 0.9rem);
+        }
+
+        .seat:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .seat.vip {
+            background: #e74c3c;
+            border-color: #c0392b;
+        }
+
+        .seat.occupied {
+            background: #27ae60;
+            border-color: #229954;
+        }
+
+        .seat.selected {
+            background: #f39c12;
+            border-color: #e67e22;
+            transform: scale(1.1);
+        }
+
+        .aisle {
+            width: 60px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #7f8c8d;
+            font-size: 0.8rem;
+            background: rgba(127, 140, 141, 0.1);
+            border-radius: 5px;
+            border: 1px dashed #95a5a6;
+            margin: 0 0.5rem;
+        }
+
+        .audience-section {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 2px dashed #dee2e6;
+        }
+
+        .audience-block {
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            border: 2px solid #dee2e6;
+            transition: all 0.3s ease;
+            position: relative;
+            min-height: 200px;
+            width: fit-content;
+            min-width: 300px;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .audience-block:hover {
+            border-color: #3498db;
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.2);
+        }
+
+        .audience-block.editing {
+            /* 弹窗编辑模式不再需要特殊的边框样式 */
+        }
+
+        .audience-block h4 {
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .audience-block h4:hover {
+            background: #f8f9fa;
+            color: #3498db;
+        }
+
+        .audience-block.editing h4 {
+            /* 弹窗编辑模式不再需要特殊的标题样式 */
+        }
+
+        /* 弹窗样式优化 */
+        #areaTitleModal .modal-content {
+            width: 450px;
+            max-width: 95vw;
+        }
+
+        #areaTitleModal .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        #areaTitleModal .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #555;
+        }
+
+        #areaTitleModal .form-group input {
+            width: 100%;
+            padding: 0.7rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        #areaTitleModal .form-group input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+
+        .audience-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .audience-title-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding: 0 1rem;
+        }
+
+        .add-area-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .add-area-btn:hover {
+            background: #229954;
+            transform: translateY(-1px);
+        }
+
+        .area-edit-controls {
+            display: none;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            gap: 0.5rem;
+            z-index: 10;
+        }
+        
+        .audience-block:hover .area-edit-controls {
+            display: flex;
+        }
+
+        .area-edit-btn {
+            padding: 0.3rem 0.6rem;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+
+        .area-edit-btn.save {
+            background: #27ae60;
+            color: white;
+        }
+
+        .area-edit-btn.save:hover {
+            background: #229954;
+        }
+
+        .area-edit-btn.delete {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .area-edit-btn.delete:hover {
+            background: #c0392b;
+        }
+
+        .area-edit-btn.cancel {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .area-edit-btn.cancel:hover {
+            background: #7f8c8d;
+        }
+
+        .area-config {
+            display: none;
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            border: 1px solid #dee2e6;
+        }
+
+        .audience-block.editing .area-config {
+            display: block;
+        }
+
+        .config-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .config-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .config-row label {
+            font-size: 0.9rem;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .config-row input {
+            width: 60px;
+            padding: 0.3rem;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .area-seats-grid {
+            display: grid;
+            gap: 0.3rem;
+            justify-content: center;
+            margin: 1rem auto 0;
+            width: fit-content;
+            max-width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+            /* 防止闪烁 */
+            transition: none;
+            transform: none;
+        }
+
+        .status-bar {
+            background: rgba(0,0,0,0.1);
+            padding: 1rem;
+            border-radius: 5px;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 2rem;
+            border-radius: 10px;
+            width: 400px;
+            max-width: 90%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        @media (max-width: 768px) {
+            .header-title {
+                font-size: 1.2rem;
+            }
+            
+            .controls {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            
+            .sidebar {
+                width: 250px;
+            }
+            
+            .meeting-hall {
+                padding: 1rem;
+            }
+            
+            .audience-section {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .audience-block {
+                min-width: 250px;
+                width: 100%;
+            }
+            
+            .area-seats-grid {
+                gap: 0.2rem;
+            }
+            
+            .seat {
+                width: clamp(30px, 6vw, 40px);
+                height: clamp(30px, 6vw, 40px);
+                font-size: clamp(0.6rem, 2vw, 0.8rem);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .audience-block {
+                min-width: 200px;
+                padding: 0.5rem;
+            }
+            
+            .seat {
+                width: clamp(25px, 8vw, 35px);
+                height: clamp(25px, 8vw, 35px);
+                font-size: clamp(0.5rem, 2.5vw, 0.7rem);
+            }
+            
+            .area-config {
+                padding: 0.5rem;
+            }
+            
+            .config-row input {
+                width: 50px;
+            }
+        }
+    
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-left">
+                <a href="welcome.html" class="back-btn">🏠 主页</a>
+                <div class="header-title">💼 银保会议排座系统</div>
+            </div>
+            <div class="controls">
+                <button class="btn btn-primary" onclick="generateLayout()">生成布局</button>
+                <button class="btn btn-secondary" onclick="clearLayout()">清空布局</button>
+                <button class="btn btn-success" onclick="exportLayout()">导出布局</button>
+            </div>
+        </header>
+        <main>
+            <aside class="sidebar">
+                <h3>会议设置</h3>
+                
+                <div class="form-group">
+                    <label>领导席排数：</label>
+                    <select id="leaderRows" onchange="updateLayout()">
+                        <option value="1">1排</option>
+                        <option value="2" selected>2排</option>
+                        <option value="3">3排</option>
+                        <option value="4">4排</option>
+                        <option value="5">5排</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>每排座位数（用逗号分隔）：</label>
+                    <input type="text" id="seatsPerRow" value="8,10,10" placeholder="例如：8,10,10" onchange="updateLayout()">
+                    <small style="color: #666; font-size: 0.8rem;">输入每排座位数，用逗号分隔</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>过道间隔：</label>
+                    <select id="aisleInterval" onchange="updateLayout()">
+                        <option value="4">每4个座位一个过道</option>
+                        <option value="5" >每5个座位一个过道</option>
+                        <option value="6" selected>每6个座位一个过道</option>
+                        <option value="0">无过道</option>
+                    </select>
+                </div>
+                <div class="status-bar">
+                    <div>总座位数：<span id="totalSeats">0</span></div>
+                    <div>领导席：<span id="leaderSeats">0</span></div>
+                    <div>观众席：<span id="audienceSeats">0</span></div>
+                </div>
+            </aside>
+            <main class="main-area">
+                <div class="meeting-hall" id="meetingHall">
+                    <div class="stage" id="stage">
+                        🎭 舞台区域
+                    </div>
+                    
+                    <div class="seating-area" id="seatingArea">
+                        <!-- 座位布局将在这里动态生成 -->
+                    </div>
+                </div>
+            </main>
+        </main>
+    </div>
+    <!-- 座位信息模态框 -->
+    <div id="seatModal" class="modal"></div>
+        
+    </style>
+</head>
+
+
+    <script>
+        let seats = [];
+        let selectedSeat = null;
+        let isInitializing = true; // 添加初始化标志
+        let currentEditingArea = null;
+        let pendingDeleteAreaIndex = null;
+
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            // 先隐藏会议厅，避免初始闪烁
+            const meetingHall = document.getElementById('meetingHall');
+            if (meetingHall) {
+                meetingHall.style.visibility = 'hidden';
+                meetingHall.style.opacity = '0';
+            }
+            
+            // 延迟生成布局，确保DOM完全加载
+            setTimeout(function() {
+                generateLayout();
+                // 显示会议厅
+                if (meetingHall) {
+                    meetingHall.style.visibility = 'visible';
+                    meetingHall.style.opacity = '1';
+                    meetingHall.style.transition = 'opacity 0.3s ease';
+                }
+                isInitializing = false;
+            }, 100);
+        });
+
+        // 生成会议布局
+        function generateLayout() {
+            clearLayout();
+            
+            const leaderRows = parseInt(document.getElementById('leaderRows').value);
+            const seatsPerRowInput = document.getElementById('seatsPerRow').value;
+            // const audienceAreas = parseInt(document.getElementById('audienceAreas').value);
+            // const seatsPerArea = parseInt(document.getElementById('seatsPerArea').value);
+            
+            // 解析每排座位数
+            let seatsPerRowArray = [];
+            if (seatsPerRowInput.includes(',')) {
+                seatsPerRowArray = seatsPerRowInput.split(',').map(s => parseInt(s.trim()));
+            } else {
+                // 如果没有逗号，使用统一的座位数
+                seatsPerRowArray = Array(leaderRows).fill(parseInt(seatsPerRowInput));
+            }
+            
+            // 确保数组长度与排数匹配
+            if (seatsPerRowArray.length < leaderRows) {
+                // 如果指定的座位数少于排数，用最后一个值填充剩余排
+                const lastValue = seatsPerRowArray[seatsPerRowArray.length - 1];
+                while (seatsPerRowArray.length < leaderRows) {
+                    seatsPerRowArray.push(lastValue);
+                }
+            } else if (seatsPerRowArray.length > leaderRows) {
+                // 如果指定的座位数多于排数，截取前面的值
+                seatsPerRowArray = seatsPerRowArray.slice(0, leaderRows);
+            }
+            
+            const seatingArea = document.getElementById('seatingArea');
+            
+            // 生成领导席
+            createLeaderSeats(seatingArea, leaderRows, seatsPerRowArray);
+            
+            // 生成观众席
+            createAudienceSeats(seatingArea);
+            
+            updateStatistics();
+        }
+
+        // 创建领导席
+        function createLeaderSeats(container, rows, seatsPerRowArray) {
+            const leaderSection = document.createElement('div');
+            leaderSection.className = 'leader-section';
+            
+            // 生成标题，显示每排座位数
+            const title = document.createElement('div');
+            title.className = 'section-title';
+            let titleText = '🪑 领导席 (';
+            if (seatsPerRowArray.length === 1) {
+                titleText += `${rows}排，每排${seatsPerRowArray[0]}座`;
+            } else {
+                titleText += `${rows}排：`;
+                for (let i = 0; i < seatsPerRowArray.length; i++) {
+                    titleText += `第${i + 1}排${seatsPerRowArray[i]}座`;
+                    if (i < seatsPerRowArray.length - 1) titleText += '，';
+                }
+            }
+            titleText += ')';
+            title.textContent = titleText;
+            leaderSection.appendChild(title);
+            
+            // 找到最大座位数，用于统一过道位置
+            const maxSeatsPerRow = Math.max(...seatsPerRowArray.slice(0, rows));
+            
+            // 计算统一的过道位置（基于最大座位数）
+            const aisleInterval = parseInt(document.getElementById('aisleInterval').value);
+            const aisleCount = aisleInterval > 0 ? Math.floor(maxSeatsPerRow / aisleInterval) : 0;
+            const aislePositions = [];
+            
+            if (aisleCount > 0) {
+                const seatsBetweenAisles = Math.floor(maxSeatsPerRow / (aisleCount + 1));
+                for (let i = 1; i <= aisleCount; i++) {
+                    aislePositions.push(i * (seatsBetweenAisles + 1) - 1);
+                }
+            }
+            
+            for (let row = 0; row < rows; row++) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'seat-row';
+                
+                const currentSeatsPerRow = seatsPerRowArray[row] || seatsPerRowArray[seatsPerRowArray.length - 1];
+                let seatCounter = 0;
+                let positionCounter = 0;
+                
+                // 根据最大座位数和当前座位数计算偏移
+                const seatOffset = Math.floor((maxSeatsPerRow - currentSeatsPerRow) / 2);
+                
+                for (let i = 0; i < maxSeatsPerRow + aisleCount; i++) {
+                    // 检查当前位置是否应该放置过道
+                    const isAislePosition = aislePositions.includes(positionCounter);
+                    
+                    if (isAislePosition && aisleCount > 0) {
+                        // 添加过道
+                        const aisle = document.createElement('div');
+                        aisle.className = 'aisle';
+                        aisle.innerHTML = '🚶';
+                        rowDiv.appendChild(aisle);
+                        positionCounter++;
+                    } else {
+                        // 检查是否应该放置座位
+                        const effectivePosition = positionCounter - aislePositions.filter(pos => pos < positionCounter).length;
+                        
+                        if (effectivePosition >= seatOffset && seatCounter < currentSeatsPerRow) {
+                            // 添加座位
+                            const seat = document.createElement('div');
+                            seat.className = 'seat vip';
+                            seat.textContent = `${row + 1}-${seatCounter + 1}`;
+                            seat.dataset.row = row + 1;
+                            seat.dataset.number = seatCounter + 1;
+                            seat.dataset.type = 'leader';
+                            seat.onclick = () => selectSeat(seat);
+                            
+                            seats.push({
+                                element: seat,
+                                row: row + 1,
+                                number: seatCounter + 1,
+                                type: 'leader',
+                                occupied: false
+                            });
+                            
+                            rowDiv.appendChild(seat);
+                            seatCounter++;
+                        } else {
+                            // 添加空白占位符（保持对齐）
+                            const placeholder = document.createElement('div');
+                            placeholder.style.width = '50px';
+                            placeholder.style.height = '50px';
+                            placeholder.style.visibility = 'hidden';
+                            rowDiv.appendChild(placeholder);
+                        }
+                        positionCounter++;
+                    }
+                }
+                
+                leaderSection.appendChild(rowDiv);
+            }
+            
+            container.appendChild(leaderSection);
+        }
+
+        // 创建观众席
+        function createAudienceSeats(container, areas) {
+            const audienceTitleSection = document.createElement('div');
+            audienceTitleSection.className = 'audience-title-section';
+            
+            const audienceTitle = document.createElement('div');
+            audienceTitle.className = 'section-title';
+            audienceTitle.textContent = `👥 观众席`;
+            audienceTitleSection.appendChild(audienceTitle);
+            
+            const addAreaBtn = document.createElement('button');
+            addAreaBtn.className = 'add-area-btn';
+            addAreaBtn.textContent = '➕ 增加观众区';
+            addAreaBtn.onclick = addAudienceArea;
+            audienceTitleSection.appendChild(addAreaBtn);
+            
+            container.appendChild(audienceTitleSection);
+            
+            const audienceSection = document.createElement('div');
+            audienceSection.className = 'audience-section';
+            audienceSection.id = 'audienceSection';
+            
+            // 创建默认的2*2区域，每个区域4排8座
+            const defaultAreas = [
+                { name: 'A区', rows: 4, cols: 8, x: 0, y: 0 },
+                { name: 'B区', rows: 4, cols: 8, x: 1, y: 0 },
+                { name: 'C区', rows: 4, cols: 8, x: 0, y: 1 },
+                { name: 'D区', rows: 4, cols: 8, x: 1, y: 1 }
+            ];
+            
+            defaultAreas.forEach((area, index) => {
+                createAudienceArea(audienceSection, area, index);
+            });
+            
+            container.appendChild(audienceSection);
+        }
+
+        // 创建观众席区域
+        function createAudienceArea(container, areaConfig, index) {
+            const areaBlock = document.createElement('div');
+            areaBlock.className = 'audience-block';
+            areaBlock.dataset.areaId = index;
+            areaBlock.dataset.rows = areaConfig.rows;
+            areaBlock.dataset.cols = areaConfig.cols;
+            areaBlock.dataset.name = areaConfig.name;
+            
+            // 区域标题 - 双击打开弹窗编辑
+            const areaTitle = document.createElement('h4');
+            areaTitle.textContent = areaConfig.name;
+            areaTitle.ondblclick = () => enterAreaEditMode(areaBlock);
+            areaTitle.style.cursor = 'pointer';
+            areaTitle.title = '双击编辑区域信息';
+            areaBlock.appendChild(areaTitle);
+            
+            // 编辑控制按钮（简化版，只保留删除按钮）
+            const editControls = document.createElement('div');
+            editControls.className = 'area-edit-controls';
+            editControls.innerHTML = `
+                <button class="area-edit-btn delete" onclick="deleteArea(${index})" title="删除区域">删除</button>
+            `;
+            areaBlock.appendChild(editControls);
+            
+            // 座位网格
+            const seatsGrid = document.createElement('div');
+            seatsGrid.className = 'area-seats-grid';
+            seatsGrid.id = `seatsGrid${index}`;
+            areaBlock.appendChild(seatsGrid);
+            
+            // 生成座位
+            generateAreaSeats(areaBlock, areaConfig, index);
+            
+            container.appendChild(areaBlock);
+        }
+
+        // 生成区域座位
+        function generateAreaSeats(areaBlock, areaConfig, areaIndex) {
+            const seatsGrid = areaBlock.querySelector(`#seatsGrid${areaIndex}`);
+            seatsGrid.innerHTML = '';
+            
+            // 根据列数动态调整网格，确保自适应宽度
+            const maxColumnsPerRow = Math.min(areaConfig.cols, 20); // 限制最大列数避免过宽
+            seatsGrid.style.gridTemplateColumns = `repeat(${maxColumnsPerRow}, minmax(35px, 1fr))`;
+            
+            // 确保座位网格在区域内水平居中
+            seatsGrid.style.display = 'grid';
+            seatsGrid.style.justifyContent = 'center';
+            seatsGrid.style.marginLeft = 'auto';
+            seatsGrid.style.marginRight = 'auto';
+            seatsGrid.style.width = 'fit-content';
+            
+            // 调整区域块的宽度
+            const optimalWidth = Math.min(maxColumnsPerRow * 55 + 40, window.innerWidth - 100); // 55px per seat + gaps, max viewport width
+            areaBlock.style.width = `${optimalWidth}px`;
+            areaBlock.style.maxWidth = '100%';
+            
+            let seatCounter = 0;
+            for (let row = 0; row < areaConfig.rows; row++) {
+                for (let col = 0; col < areaConfig.cols; col++) {
+                    const seatElement = document.createElement('div');
+                    seatElement.className = 'seat';
+                    seatElement.textContent = `${row + 1}-${col + 1}`;
+                    seatElement.dataset.area = areaConfig.name;
+                    seatElement.dataset.row = row + 1;
+                    seatElement.dataset.number = col + 1;
+                    seatElement.dataset.type = 'audience';
+                    seatElement.dataset.areaId = areaIndex;
+                    seatElement.onclick = () => selectSeat(seatElement);
+                    
+                    seats.push({
+                        element: seatElement,
+                        area: areaConfig.name,
+                        areaId: areaIndex,
+                        row: row + 1,
+                        number: col + 1,
+                        type: 'audience',
+                        occupied: false
+                    });
+                    
+                    seatsGrid.appendChild(seatElement);
+                    seatCounter++;
+                }
+            }
+            
+            // 更新区域标题显示座位数
+            areaBlock.querySelector('h4').textContent = `${areaConfig.name} (${areaConfig.rows}排×${areaConfig.cols}列=${seatCounter}座)`;
+            
+            // 调整会议厅大小
+            setTimeout(adjustMeetingHallSize, 100);
+        }
+
+        // 进入区域编辑模式
+        function enterAreaEditMode(areaBlock) {
+            // 退出其他区域的编辑模式
+            document.querySelectorAll('.audience-block.editing').forEach(block => {
+                block.classList.remove('editing');
+            });
+            
+            // 进入当前区域的编辑模式
+            areaBlock.classList.add('editing');
+        }
+
+        // 保存区域编辑（现在通过弹窗处理）
+        function saveAreaEdit(areaIndex) {
+            // 此函数保留用于兼容性，实际功能已移至 saveAreaTitleFromModal
+            console.log('saveAreaEdit 函数已不再使用，请使用弹窗编辑');
+        }
+
+        // 取消区域编辑（现在通过弹窗处理）
+        function cancelAreaEdit(areaIndex) {
+            // 此函数保留用于兼容性，实际功能已移至 closeAreaTitleModal
+            console.log('cancelAreaEdit 函数已不再使用，请使用弹窗编辑');
+        }
+
+        // 删除区域（使用模态框确认）
+        function deleteArea(areaIndex) {
+            pendingDeleteAreaIndex = areaIndex;
+            const areaBlock = document.querySelector(`[data-area-id="${areaIndex}"]`);
+            const areaName = areaBlock.dataset.name || `区域${areaIndex + 1}`;
+            document.getElementById('deleteConfirmMessage').textContent = `确定要删除"${areaName}"吗？此操作不可撤销。`;
+            document.getElementById('deleteConfirmModal').style.display = 'block';
+        }
+        
+        // 确认删除区域
+        function confirmDeleteArea() {
+            if (pendingDeleteAreaIndex !== null) {
+                const areaBlock = document.querySelector(`[data-area-id="${pendingDeleteAreaIndex}"]`);
+                
+                // 清除该区域的座位数据
+                seats = seats.filter(seat => seat.areaId !== pendingDeleteAreaIndex);
+                
+                // 删除区域元素
+                areaBlock.remove();
+                
+                updateStatistics();
+                
+                // 调整会议厅大小
+                setTimeout(adjustMeetingHallSize, 100);
+                
+                closeDeleteConfirmModal();
+            }
+        }
+        
+        // 关闭删除确认模态框
+        function closeDeleteConfirmModal() {
+            document.getElementById('deleteConfirmModal').style.display = 'none';
+            pendingDeleteAreaIndex = null;
+        }
+
+        // 增加观众席区域
+function addAudienceArea() {
+            const audienceSection = document.getElementById('audienceSection');
+            const existingAreas = audienceSection.querySelectorAll('.audience-block');
+            const newIndex = existingAreas.length;
+            
+            // 生成新区域名称
+            const areaNames = ['A区', 'B区', 'C区', 'D区', 'E区', 'F区', 'G区', 'H区'];
+            const newAreaName = areaNames[newIndex] || `区域${newIndex + 1}`;
+            
+            const newAreaConfig = {
+                name: newAreaName,
+                rows: 4,
+                cols: 8
+            };
+            
+            createAudienceArea(audienceSection, newAreaConfig, newIndex);
+            updateStatistics();
+            
+            // 调整会议厅大小
+            setTimeout(adjustMeetingHallSize, 100);
+        }
+
+        // 重新调整所有区域的宽度
+        function adjustAllAreasWidth() {
+            const audienceSection = document.getElementById('audienceSection');
+            const areas = audienceSection.querySelectorAll('.audience-block');
+            
+            areas.forEach((areaBlock, index) => {
+                const rows = parseInt(areaBlock.dataset.rows);
+                const cols = parseInt(areaBlock.dataset.cols);
+                const areaConfig = {
+                    name: areaBlock.dataset.name,
+                    rows: rows,
+                    cols: cols
+                };
+                
+                // 重新生成座位以调整宽度
+                generateAreaSeats(areaBlock, areaConfig, index);
+            });
+        }
+
+        // 窗口大小改变时重新调整
+        window.addEventListener('resize', function() {
+            setTimeout(adjustAllAreasWidth, 100);
+            setTimeout(adjustMeetingHallSize, 200);
+        });
+
+        // 动态调整会议厅大小
+        function adjustMeetingHallSize() {
+            if (isInitializing) return; // 初始化期间不调整大小
+            
+            const meetingHall = document.getElementById('meetingHall');
+            const seatingArea = document.getElementById('seatingArea');
+            
+            if (!meetingHall || !seatingArea) return;
+            
+            // 计算内容实际需要的尺寸
+            const seatingAreaRect = seatingArea.getBoundingClientRect();
+            const stage = meetingHall.querySelector('.stage');
+            const stageHeight = stage ? stage.offsetHeight + 40 : 0; // 40px for margins
+            
+            // 计算所有子元素的总高度
+            let totalHeight = 0;
+            Array.from(meetingHall.children).forEach(child => {
+                totalHeight += child.offsetHeight + 20; // 20px for margins
+            });
+            
+            // 计算最大宽度（考虑所有区域）
+            const audienceAreas = seatingArea.querySelectorAll('.audience-block');
+            const leaderSection = seatingArea.querySelector('.leader-section');
+            
+            let maxWidth = 800; // 最小宽度
+            
+            if (leaderSection) {
+                const leaderRows = leaderSection.querySelectorAll('.seat-row');
+                leaderRows.forEach(row => {
+                    maxWidth = Math.max(maxWidth, row.scrollWidth + 40);
+                });
+            }
+            
+            if (audienceAreas.length > 0) {
+                let totalAreasWidth = 0;
+                let maxAreaWidth = 0;
+                
+                audienceAreas.forEach(area => {
+                    const areaWidth = area.scrollWidth + 40; // 40px for padding and gaps
+                    maxAreaWidth = Math.max(maxAreaWidth, areaWidth);
+                    totalAreasWidth += areaWidth;
+                });
+                
+                // 根据网格布局计算总宽度
+                const gridColumns = window.innerWidth <= 768 ? 1 : 2;
+                const areasPerRow = Math.ceil(audienceAreas.length / gridColumns);
+                const areasWidth = maxAreaWidth * Math.min(2, audienceAreas.length) + (Math.min(2, audienceAreas.length) - 1) * 32; // 32px for gaps
+                
+                maxWidth = Math.max(maxWidth, areasWidth);
+            }
+            
+            // 应用计算出的尺寸 - 使用更稳定的尺寸计算
+            const finalWidth = Math.min(maxWidth + 80, window.innerWidth - 120); // 80px for padding, 120px for margins
+            const finalHeight = Math.max(totalHeight + 60, 600); // 60px for padding, 最小600px
+            
+            // 只在尺寸有显著变化时才更新，避免频繁重排
+            const currentWidth = parseInt(meetingHall.style.width) || 0;
+            const currentHeight = parseInt(meetingHall.style.minHeight) || 0;
+            
+            if (Math.abs(currentWidth - finalWidth) > 50 || Math.abs(currentHeight - finalHeight) > 50) {
+                meetingHall.style.width = `${finalWidth}px`;
+                meetingHall.style.minHeight = `${finalHeight}px`;
+                console.log(`Meeting hall adjusted: width=${finalWidth}px, height=${finalHeight}px`);
+            }
+        }
+
+        // 选择座位
+        function selectSeat(seatElement) {
+            // 清除之前的选择
+            document.querySelectorAll('.seat.selected').forEach(seat => {
+                seat.classList.remove('selected');
+            });
+            
+            // 选择当前座位
+            seatElement.classList.add('selected');
+            selectedSeat = seatElement;
+            
+            // 显示座位信息
+            showSeatInfo(seatElement);
+        }
+
+        // 显示座位信息
+        function showSeatInfo(seatElement) {
+            const type = seatElement.dataset.type;
+            const row = seatElement.dataset.row;
+            const number = seatElement.dataset.number;
+            const area = seatElement.dataset.area || '-';
+            
+            let info = `
+                <p><strong>座位类型：</strong>${type === 'leader' ? '领导席' : '观众席'}</p>
+                <p><strong>座位编号：</strong>${row}-${number}</p>
+            `;
+            
+            if (type === 'audience') {
+                info += `<p><strong>区域：</strong>${area}</p>`;
+            }
+            
+            info += `<p><strong>状态：</strong>${seatElement.classList.contains('occupied') ? '已占用' : '空闲'}</p>`;
+            
+            document.getElementById('seatInfo').innerHTML = info;
+            document.getElementById('seatModal').style.display = 'block';
+        }
+
+        // 关闭座位信息模态框
+        function closeSeatModal() {
+            document.getElementById('seatModal').style.display = 'none';
+        }
+
+        // 更新布局
+        function updateLayout() {
+            generateLayout();
+        }
+
+        // 清空布局
+        function clearLayout() {
+            const seatingArea = document.getElementById('seatingArea');
+            seatingArea.innerHTML = '';
+            seats = [];
+            selectedSeat = null;
+            updateStatistics();
+        }
+
+        // 更新统计信息
+        function updateStatistics() {
+            const totalSeats = seats.length;
+            const leaderSeats = seats.filter(seat => seat.type === 'leader').length;
+            const audienceSeats = seats.filter(seat => seat.type === 'audience').length;
+            
+            document.getElementById('totalSeats').textContent = totalSeats;
+            document.getElementById('leaderSeats').textContent = leaderSeats;
+            document.getElementById('audienceSeats').textContent = audienceSeats;
+        }
+
+        // 导出布局
+        function exportLayout() {
+            const layoutData = {
+                settings: {
+                    leaderRows: document.getElementById('leaderRows').value,
+                    seatsPerRow: document.getElementById('seatsPerRow').value,
+                    audienceAreas: document.getElementById('audienceAreas').value,
+                    // seatsPerArea: document.getElementById('seatsPerArea').value,
+                    aisleWidth: document.getElementById('aisleWidth').value,
+                    aisleInterval: document.getElementById('aisleInterval').value
+                },
+                seats: seats.map(seat => ({
+                    type: seat.type,
+                    area: seat.area,
+                    row: seat.row,
+                    number: seat.number,
+                    occupied: seat.occupied
+                }))
+            };
+            
+            const dataStr = JSON.stringify(layoutData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = 'meeting_layout.json';
+            link.click();
+            
+            alert('布局已导出！');
+        }
+
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const seatModal = document.getElementById('seatModal');
+            const areaTitleModal = document.getElementById('areaTitleModal');
+            const deleteConfirmModal = document.getElementById('deleteConfirmModal');
+            
+            if (event.target === seatModal) {
+                closeSeatModal();
+            }
+            if (event.target === areaTitleModal) {
+                closeAreaTitleModal();
+            }
+            if (event.target === deleteConfirmModal) {
+                closeDeleteConfirmModal();
+            }
+        }
+
+        // 打开区域标题编辑弹窗
+        function openAreaTitleModal(areaIndex) {
+            const areaBlock = document.querySelector(`[data-area-id="${areaIndex}"]`);
+            const currentName = areaBlock.dataset.name;
+            const currentRows = parseInt(areaBlock.dataset.rows);
+            const currentCols = parseInt(areaBlock.dataset.cols);
+            
+            // 填充当前值到弹窗
+            document.getElementById('modalAreaName').value = currentName;
+            document.getElementById('modalAreaRows').value = currentRows;
+            document.getElementById('modalAreaCols').value = currentCols;
+            
+            // 存储当前编辑的区域索引
+            document.getElementById('areaTitleModal').dataset.editingAreaId = areaIndex;
+            
+            // 显示弹窗
+            document.getElementById('areaTitleModal').style.display = 'block';
+            
+            // 聚焦到名称输入框
+            setTimeout(() => {
+                document.getElementById('modalAreaName').focus();
+                document.getElementById('modalAreaName').select();
+            }, 100);
+        }
+
+        // 关闭区域标题编辑弹窗
+        function closeAreaTitleModal() {
+            document.getElementById('areaTitleModal').style.display = 'none';
+            document.getElementById('areaTitleModal').dataset.editingAreaId = '';
+        }
+
+        // 从弹窗保存区域标题
+        function saveAreaTitleFromModal() {
+            const areaIndex = document.getElementById('areaTitleModal').dataset.editingAreaId;
+            if (!areaIndex && areaIndex !== '0') return;
+            
+            const areaBlock = document.querySelector(`[data-area-id="${areaIndex}"]`);
+            const newName = document.getElementById('modalAreaName').value.trim() || `区域${parseInt(areaIndex) + 1}`;
+            const newRows = parseInt(document.getElementById('modalAreaRows').value) || 4;
+            const newCols = parseInt(document.getElementById('modalAreaCols').value) || 8;
+            
+            // 更新区域配置
+            areaBlock.dataset.name = newName;
+            areaBlock.dataset.rows = newRows;
+            areaBlock.dataset.cols = newCols;
+            
+            // 重新生成座位
+            const areaConfig = {
+                name: newName,
+                rows: newRows,
+                cols: newCols
+            };
+            
+            // 清除该区域的旧座位数据
+            seats = seats.filter(seat => seat.areaId !== parseInt(areaIndex));
+            
+            // 重新生成座位
+            generateAreaSeats(areaBlock, areaConfig, parseInt(areaIndex));
+            
+            // 关闭弹窗
+            closeAreaTitleModal();
+            
+            // 更新统计信息
+            updateStatistics();
+            
+            // 调整会议厅大小
+            setTimeout(adjustMeetingHallSize, 100);
+        }
+
+        // 修改双击事件处理函数
+        function enterAreaEditMode(areaBlock) {
+            const areaIndex = areaBlock.dataset.areaId;
+            // 改为打开弹窗而不是进入编辑模式
+            openAreaTitleModal(areaIndex);
+        }
+    </script>
+
+    <!-- 观众席区域标题编辑弹窗 -->
+    <div id="areaTitleModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAreaTitleModal()">&times;</span>
+            <h3 style="margin-bottom: 1.5rem; color: #2c3e50;">编辑区域信息</h3>
+            <div class="form-group">
+                <label for="modalAreaName">区域名称：</label>
+                <input type="text" id="modalAreaName" maxlength="10" placeholder="请输入区域名称">
+            </div>
+            <div class="form-group">
+                <label for="modalAreaRows">行数：</label>
+                <input type="number" id="modalAreaRows" min="1" max="10" value="4">
+            </div>
+            <div class="form-group">
+                <label for="modalAreaCols">列数：</label>
+                <input type="number" id="modalAreaCols" min="1" max="20" value="8">
+            </div>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                <button class="btn btn-secondary" onclick="closeAreaTitleModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveAreaTitleFromModal()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除确认模态框 -->
+    <div id="deleteConfirmModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeDeleteConfirmModal()">&times;</span>
+            <h3>确认删除</h3>
+            <p id="deleteConfirmMessage">确定要删除这个区域吗？此操作不可撤销。</p>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                <button class="btn btn-secondary" onclick="closeDeleteConfirmModal()">取消</button>
+                <button class="btn btn-danger" onclick="confirmDeleteArea()">删除</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

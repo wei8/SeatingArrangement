@@ -444,7 +444,7 @@ main {
 
 .seating-area {
     min-height: 600px;
-    min-width: 800px;
+    min-width: 1200px;
     background: white;
     border-radius: 10px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
@@ -752,7 +752,7 @@ main {
 .form-group input {
     width: 100%;
     padding: 0.5rem;
-    border: 1px solid #ced4da;
+    border: 1px solid #6a7d91;
     border-radius: 3px;
     font-size: 1rem;
 }

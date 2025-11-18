@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宴会餐厅排座系统</title>
+    <link rel="icon" href="image/favicon.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="image/favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* 添加与meeting.html相同的header样式 */
+        header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-1px);
+        }
+
+        .header-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white !important;
+        }
+
+        .header-title h1 {
+            color: white !important;
+            margin: 0;
+            font-size: inherit;
+            font-weight: inherit;
+        }
+
+        .header-icon {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+
+        /* 添加与meeting.html相同的按钮样式 */
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-small {
+            padding: 0.3rem 0.6rem;
+            font-size: 0.8rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-left">
+                <a href="welcome.html" class="back-btn">🏠 主页</a>
+                <div class="header-title">
+                    <h1>🍽️ 银保部宴会排座系统</h1>
+                </div>
+            </div>
+            <div class="controls">
+                    <button id="addTableBtn" class="btn btn-primary">添加餐桌</button>
+                    <button id="resetBtn" class="btn btn-secondary">重置布局</button>
+                    <button id="adjustCanvasBtn" class="btn btn-secondary" style="background: #6c757d; border-color: #6c757d;">调整画布</button>
+                    <button id="testCanvasBtn" class="btn btn-secondary" style="background: #28a745; border-color: #28a745;">测试画布</button>
+                    <button id="exportImageBtn" class="btn btn-primary">导出图片</button>
+                    <button id="debugRenderBtn" class="btn btn-secondary">调试渲染</button>
+                    <div id="saveStatus" class="save-status">
+                        <span class="save-indicator"></span>
+                        <span class="save-text">自动保存中...</span>
+                    </div>
+                </div>
+        </header>
+        
+        <main>
+            <div class="sidebar">
+                <h3>餐桌控制</h3>
+                <div id="tableList" class="table-list"></div>
+                
+                <h3>客人列表</h3>
+                <div class="guest-controls">
+                    <input type="text" id="guestNameInput" placeholder="客人姓名">
+                    <input type="text" id="guestPositionInput" placeholder="职务">
+                    <input type="text" id="guestCompanyInput" placeholder="公司">
+                    <button id="addGuestBtn" class="btn btn-small">添加客人</button>
+                </div>
+                <div class="import-controls">
+                    <input type="file" id="guestImportFile" accept=".json,.csv" style="display: none;">
+                    <button id="importGuestsBtn" class="btn btn-small btn-secondary">导入客人</button>
+                    <button id="exportGuestsBtn" class="btn btn-small btn-secondary">导出客人</button>
+                </div>
+                <div id="guestList" class="guest-list"></div>
+            </div>
+            
+            <div class="main-area">
+                <div id="seatingArea" class="seating-area">
+                    <!-- 餐桌将在这里动态生成 -->
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- 餐桌设置模态框 -->
+    <div id="tableSettingsModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>餐桌设置</h3>
+            <div class="form-group">
+                <label for="tableNameInput">餐桌名称:</label>
+                <input type="text" id="tableNameInput" placeholder="例如：主桌">
+            </div>
+            <div class="form-group">
+                <label for="seatCountInput">座位数量:</label>
+                <input type="number" id="seatCountInput" min="4" max="20" value="12">
+            </div>
+            <div class="modal-buttons">
+                <button id="saveTableSettings" class="btn btn-primary">保存</button>
+                <button id="deleteTable" class="btn btn-danger">删除餐桌</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>

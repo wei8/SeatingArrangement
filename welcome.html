@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能排座系统 - 欢迎</title>
+    <link rel="icon" href="image/favicon.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="image/favicon.ico" type="image/x-icon">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #87CEEB 0%, #4682B4 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            position: relative;
+        }
+
+        .welcome-container {
+            text-align: center;
+            padding: 2rem;
+            max-width: 1000px;
+            width: 90%;
+        }
+
+        .header-with-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .header-icon {
+            width: 220px;
+            height: 65px;
+            /* box-shadow: 0 4px 8px rgba(0,0,0,0.2); */
+            animation: fadeInDown 1s ease;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+        }
+
+        .main-title {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(70, 130, 180, 0.3);
+            animation: fadeInDown 1s ease;
+            text-align: center;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 3rem;
+            opacity: 0.9;
+            animation: fadeInUp 1s ease 0.3s both;
+            text-shadow: 1px 1px 2px rgba(70, 130, 180, 0.3);
+        }
+
+        .system-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .system-card {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            border: 1px solid rgba(255,255,255,0.3);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            animation: fadeIn 1s ease 0.6s both;
+        }
+
+        .system-card:hover {
+            transform: translateY(-10px);
+            background: rgba(255,255,255,0.25);
+            box-shadow: 0 20px 40px rgba(70, 130, 180, 0.3);
+        }
+
+        .card-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .card-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .card-description {
+            font-size: 1rem;
+            line-height: 1.6;
+            opacity: 0.9;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-features {
+            text-align: left;
+            background: rgba(0,0,0,0.1);
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-features h4 {
+            margin-bottom: 0.5rem;
+            color: #ffd700;
+        }
+
+        .card-features ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .card-features li {
+            padding: 0.3rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .card-features li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .enter-btn {
+            background: linear-gradient(135deg, #4682B4 0%, #5F9EA0 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .enter-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 20px rgba(70, 130, 180, 0.4);
+        }
+
+        .footer {
+            margin-top: 3rem;
+            opacity: 0.7;
+            font-size: 0.9rem;
+            animation: fadeIn 1s ease 0.9s both;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* 超小屏幕适配 (320px - 480px) */
+        @media (max-width: 480px) {
+            .welcome-container {
+                padding: 1rem;
+                width: 95%;
+            }
+
+            .header-with-icon {
+                gap: 0.5rem;
+                margin-bottom: 0.8rem;
+            }
+
+            .header-icon {
+                width: 110px;
+                height: 32px;
+                top: 10px;
+                left: 10px;
+            }
+            
+            .main-title {
+                font-size: 1.8rem;
+                margin-bottom: 0.8rem;
+            }
+            
+            .subtitle {
+                font-size: 1rem;
+                margin-bottom: 2rem;
+            }
+            
+            .system-cards {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            
+            .system-card {
+                padding: 1.2rem;
+                border-radius: 15px;
+            }
+            
+            .card-icon {
+                font-size: 3rem;
+                margin-bottom: 0.8rem;
+            }
+            
+            .card-title {
+                font-size: 1.4rem;
+                margin-bottom: 0.8rem;
+            }
+            
+            .card-description {
+                font-size: 0.9rem;
+                margin-bottom: 1.2rem;
+            }
+            
+            .card-features {
+                padding: 0.8rem;
+                margin-bottom: 1.2rem;
+            }
+            
+            .card-features h4 {
+                font-size: 1rem;
+            }
+            
+            .card-features li {
+                font-size: 0.85rem;
+                padding: 0.2rem 0;
+                padding-left: 1.2rem;
+            }
+            
+            .enter-btn {
+                padding: 0.8rem 1.5rem;
+                font-size: 1rem;
+                border-radius: 25px;
+            }
+            
+            .footer {
+                margin-top: 2rem;
+                font-size: 0.8rem;
+            }
+        }
+
+        /* 小屏幕适配 (481px - 768px) */
+        @media (min-width: 481px) and (max-width: 768px) {
+            .welcome-container {
+                padding: 1.5rem;
+                width: 92%;
+            }
+            
+            .main-title {
+                font-size: 2.2rem;
+            }
+            
+            .subtitle {
+                font-size: 1.1rem;
+                margin-bottom: 2.5rem;
+            }
+            
+            .system-cards {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+            
+            .system-card {
+                padding: 1.8rem;
+            }
+            
+            .card-icon {
+                font-size: 3.5rem;
+            }
+            
+            .card-title {
+                font-size: 1.6rem;
+            }
+            
+            .card-description {
+                font-size: 0.95rem;
+            }
+        }
+
+        /* 中等屏幕适配 (769px - 1024px) */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .welcome-container {
+                max-width: 800px;
+                width: 85%;
+            }
+            
+            .main-title {
+                font-size: 2.5rem;
+            }
+            
+            .system-cards {
+                grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+                gap: 1.8rem;
+            }
+            
+            .system-card {
+                padding: 1.8rem;
+            }
+        }
+
+        /* 大屏幕适配 (1025px - 1440px) */
+        @media (min-width: 1025px) and (max-width: 1440px) {
+            .welcome-container {
+                max-width: 900px;
+                width: 80%;
+            }
+            
+            .system-cards {
+                grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            }
+        }
+
+        /* 超大屏幕适配 (1441px以上) */
+        @media (min-width: 1441px) {
+            .welcome-container {
+                max-width: 1200px;
+                width: 75%;
+            }
+            
+            .main-title {
+                font-size: 3.5rem;
+            }
+            
+            .subtitle {
+                font-size: 1.4rem;
+            }
+            
+            .system-cards {
+                grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+                gap: 2.5rem;
+            }
+            
+            .system-card {
+                padding: 2.5rem;
+            }
+            
+            .card-icon {
+                font-size: 5rem;
+            }
+            
+            .card-title {
+                font-size: 2rem;
+            }
+            
+            .card-description {
+                font-size: 1.1rem;
+            }
+        }
+
+        /* 高DPI屏幕适配 */
+        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+            .system-card {
+                border: 2px solid rgba(255,255,255,0.2);
+            }
+            
+            .enter-btn {
+                border: 2px solid transparent;
+            }
+        }
+
+        /* 横屏/竖屏适配 */
+        @media (orientation: landscape) and (max-width: 768px) {
+            .welcome-container {
+                padding: 1rem;
+            }
+
+            .header-with-icon {
+                gap: 0.8rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .header-icon {
+                width: 120px;
+                height: 35px;
+                top: 15px;
+                left: 15px;
+            }
+            
+            .main-title {
+                font-size: 1.8rem;
+                margin-bottom: 0.5rem;
+            }
+            
+            .subtitle {
+                font-size: 1rem;
+                margin-bottom: 1.5rem;
+            }
+            
+            .system-cards {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+            
+            .system-card {
+                padding: 1rem;
+            }
+            
+            .card-icon {
+                font-size: 2.5rem;
+                margin-bottom: 0.5rem;
+            }
+            
+            .card-title {
+                font-size: 1.2rem;
+            }
+            
+            .card-description {
+                font-size: 0.85rem;
+                margin-bottom: 1rem;
+            }
+            
+            .card-features {
+                display: none;
+            }
+            
+            .enter-btn {
+                padding: 0.6rem 1.2rem;
+                font-size: 0.9rem;
+            }
+        }
+
+        /* 默认基础样式 - 确保立即生效 */
+        .welcome-container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .welcome-title {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            margin-bottom: 1rem;
+            color: #fff;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+        
+        .welcome-subtitle {
+            font-size: clamp(1rem, 2.5vw, 1.5rem);
+            margin-bottom: 3rem;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.5;
+        }
+        
+        .system-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <img src="image/icon.jpg" alt="系统图标" class="header-icon">
+    <div class="welcome-container">
+        <h1 class="main-title">智能排座系统</h1>
+        <p class="subtitle">专业的座位安排解决方案，让每一场活动都井然有序</p>
+        
+        <div class="system-cards">
+            <!-- 宴会餐厅排座系统 -->
+            <div class="system-card" onclick="location.href='banquet.html'">
+                <span class="card-icon">🍽️</span>
+                <h2 class="card-title">宴会餐厅排座系统</h2>
+                <p class="card-description">
+                    专为宴会、婚宴、聚餐等餐饮场景设计的智能排座系统，
+                    支持圆形餐桌布局，提供直观的拖拽操作和完善的宾客管理功能。
+                </p>
+                <button class="enter-btn">进入宴会排座系统</button>
+            </div>
+
+            <!-- 会议排座系统 -->
+            <div class="system-card" onclick="location.href='meeting.html'">
+                <span class="card-icon">💼</span>
+                <h2 class="card-title">会议排座系统</h2>
+                <p class="card-description">
+                    专为会议、演讲、典礼等正式场合设计的排座系统，
+                    支持舞台式布局，前排领导席和后排观众席分区管理，
+                    提供专业的过道设计和座位编号功能。
+                </p>
+                <button class="enter-btn">进入会议排座系统</button>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>💡 提示：点击卡片或按钮即可进入对应的排座系统</p>
+            <p>© 2025 北京人寿银保智能排座系统 - 让每一场活动都完美有序</p>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量存储初始状态
+        let isLayoutInitialized = false;
+        let initialTimeout = null;
+
+        // 页面加载完成后的初始化函数
+        function initializePage() {
+            console.log('Initializing page layout...');
+            
+            // 强制浏览器重新计算布局
+            document.body.style.display = 'none';
+            document.body.offsetHeight; // 触发重排
+            document.body.style.display = '';
+            
+            // 添加加载状态
+            document.body.classList.add('loading');
+            
+            // 延迟执行以确保DOM和CSS完全加载
+            initialTimeout = setTimeout(function() {
+                try {
+                    adjustLayout();
+                    isLayoutInitialized = true;
+                    document.body.classList.remove('loading');
+                    document.body.classList.add('loaded');
+                    console.log('Page layout initialization completed');
+                } catch (error) {
+                    console.error('Layout initialization failed:', error);
+                    document.body.classList.remove('loading');
+                }
+            }, 50); // 减少延迟到50ms
+        }
+
+        // 页面加载动画和初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOMContentLoaded event fired');
+            
+            // 等待所有资源加载完成
+            if (document.readyState === 'complete') {
+                initializePage();
+            } else {
+                window.addEventListener('load', initializePage);
+            }
+        });
+
+        // 如果页面已经加载完成，直接初始化
+        if (document.readyState === 'complete') {
+            console.log('Page already loaded, initializing immediately');
+            initializePage();
+        }
+
+        // 自适应布局调整函数
+        function adjustLayout() {
+            const container = document.querySelector('.welcome-container');
+            const title = document.querySelector('.main-title');
+            const subtitle = document.querySelector('.subtitle');
+            const cards = document.querySelectorAll('.system-card');
+            
+            const screenWidth = window.innerWidth;
+            const screenHeight = window.innerHeight;
+            const aspectRatio = screenWidth / screenHeight;
+            
+            console.log('Adjusting layout for screen:', screenWidth + 'x' + screenHeight, 'aspect ratio:', aspectRatio);
+            
+            // 重置所有内联样式，让CSS媒体查询优先生效
+            container.style.cssText = '';
+            title.style.cssText = '';
+            subtitle.style.cssText = '';
+            document.querySelector('.footer').style.cssText = '';
+            
+            // 根据屏幕尺寸和比例调整布局（仅在CSS媒体查询无法满足时使用）
+            if (screenWidth <= 480) {
+                // 超小屏幕优化 - 仅在需要时添加内联样式
+                if (container.scrollHeight > window.innerHeight) {
+                    container.style.padding = '0.5rem';
+                    container.style.width = '98%';
+                    title.style.fontSize = '1.6rem';
+                    subtitle.style.fontSize = '0.9rem';
+                    
+                    cards.forEach(card => {
+                        card.style.marginBottom = '1rem';
+                        card.style.minHeight = 'auto';
+                    });
+                }
+            } else if (screenWidth <= 768 && aspectRatio > 1) {
+                // 横屏模式特殊处理
+                if (container.scrollHeight > window.innerHeight) {
+                    container.style.padding = '1rem';
+                    title.style.fontSize = '1.8rem';
+                }
+            }
+            
+            // 根据屏幕高度调整垂直间距
+            if (screenHeight < 600) {
+                subtitle.style.marginBottom = '1.5rem';
+                document.querySelector('.footer').style.marginTop = '1.5rem';
+                document.querySelector('.footer').style.fontSize = '0.8rem';
+            } else if (screenHeight > 1200) {
+                subtitle.style.marginBottom = '4rem';
+                document.querySelector('.footer').style.marginTop = '4rem';
+            }
+            
+            // 调整卡片内容显示（小屏幕隐藏详细功能列表）
+            if (screenHeight < 700 || screenWidth < 480) {
+                document.querySelectorAll('.card-features').forEach(features => {
+                    features.style.display = 'none';
+                });
+            } else {
+                document.querySelectorAll('.card-features').forEach(features => {
+                    features.style.display = 'block';
+                });
+            }
+            
+            console.log('Layout adjustment completed');
+        }
+
+        // 监听窗口大小变化
+        let resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                adjustLayout();
+            }, 250); // 防抖处理，避免频繁调整
+        });
+
+        // 监听设备方向变化
+        window.addEventListener('orientationchange', function() {
+            setTimeout(function() {
+                adjustLayout();
+            }, 300); // 等待方向变化完成
+        });
+
+        // 监听页面可见性变化
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                setTimeout(function() {
+                    adjustLayout();
+                }, 100);
+            }
+        });
+
+        // 添加悬停效果
+        document.querySelectorAll('.system-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-10px) scale(1.02)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+
+        // 添加鼠标跟踪效果（仅在非触摸设备上启用）
+        if (!('ontouchstart' in window)) {
+            document.addEventListener('mousemove', function(e) {
+                const cards = document.querySelectorAll('.system-card');
+                cards.forEach(card => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left - rect.width / 2;
+                    const y = e.clientY - rect.top - rect.height / 2;
+                    const distance = Math.sqrt(x * x + y * y);
+                    const maxDistance = Math.sqrt(rect.width * rect.width + rect.height * rect.height) / 2;
+                    const intensity = Math.max(0, 1 - distance / maxDistance);
+                    
+                    card.style.transform = `translateY(${-10 * intensity}px) rotateX(${y * 0.01 * intensity}deg) rotateY(${x * 0.01 * intensity}deg)`;
+                });
+            });
+        }
+
+        // 添加触摸设备支持
+        if ('ontouchstart' in window) {
+            document.querySelectorAll('.system-card').forEach(card => {
+                card.addEventListener('touchstart', function() {
+                    this.style.transform = 'translateY(-5px) scale(0.98)';
+                });
+                
+                card.addEventListener('touchend', function() {
+                    this.style.transform = 'translateY(0) scale(1)';
+                });
+            });
+        }
+
+        // 添加键盘导航支持
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                const focusedElement = document.activeElement;
+                if (focusedElement.classList.contains('system-card')) {
+                    e.preventDefault();
+                    focusedElement.click();
+                }
+            }
+        });
+
+        // 使卡片可聚焦
+        document.querySelectorAll('.system-card').forEach(card => {
+            card.setAttribute('tabindex', '0');
+            card.setAttribute('role', 'button');
+            card.setAttribute('aria-label', card.querySelector('.card-title').textContent);
+        });
+    </script>
+</body>
+</html>

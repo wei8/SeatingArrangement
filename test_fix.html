@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>修复测试 - 页面闪烁问题</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .test-result {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+            background: #f8f9fa;
+        }
+        
+        .success {
+            border-left-color: #27ae60;
+            background: #e8f5e8;
+        }
+        
+        .btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        
+        .btn:hover {
+            background: #2980b9;
+        }
+        
+        .iframe-container {
+            width: 100%;
+            height: 600px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        
+        .test-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        .loading {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .completed {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🛠️ 页面闪烁修复测试</h1>
+        
+        <div class="test-result">
+            <h3>修复内容：</h3>
+            <ul>
+                <li>✅ 将 <code>width: fit-content</code> 改为 <code>width: 100%</code></li>
+                <li>✅ 将 <code>min-height: fit-content</code> 改为固定值 <code>600px</code></li>
+                <li>✅ 添加 <code>transition: none</code> 禁用过渡效果</li>
+                <li>✅ 优化初始化流程，先隐藏后显示避免闪烁</li>
+                <li>✅ 添加防闪烁CSS属性</li>
+            </ul>
+        </div>
+        
+        <div class="test-result success">
+            <h3>测试方法：</h3>
+            <p>点击下方按钮测试页面加载效果，观察是否还有从小到大的缩放动画：</p>
+            <button class="btn" onclick="testPage()">🔄 测试页面加载</button>
+            <button class="btn" onclick="testRefresh()">🔄 测试页面刷新</button>
+        </div>
+        
+        <div id="status" class="status" style="display: none;"></div>
+        
+        <div class="iframe-container">
+            <iframe id="testFrame" class="test-iframe" src="meeting.html"></iframe>
+        </div>
+        
+        <div class="test-result">
+            <h3>预期效果：</h3>
+            <p>页面应该直接显示正确尺寸，没有从小到大的缩放动画。元素应该立即以正确大小显示。</p>
+        </div>
+    </div>
+
+    <script>
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+        }
+        
+        function hideStatus() {
+            document.getElementById('status').style.display = 'none';
+        }
+        
+        function testPage() {
+            showStatus('正在加载页面...', 'loading');
+            const iframe = document.getElementById('testFrame');
+            iframe.src = 'meeting.html?t=' + Date.now();
+            
+            iframe.onload = function() {
+                showStatus('页面加载完成！观察是否有闪烁效果', 'completed');
+                setTimeout(hideStatus, 3000);
+            };
+        }
+        
+        function testRefresh() {
+            showStatus('正在刷新页面...', 'loading');
+            const iframe = document.getElementById('testFrame');
+            iframe.contentWindow.location.reload();
+            
+            iframe.onload = function() {
+                showStatus('页面刷新完成！观察是否有闪烁效果', 'completed');
+                setTimeout(hideStatus, 3000);
+            };
+        }
+        
+        // 自动开始第一次测试
+        window.onload = function() {
+            setTimeout(testPage, 1000);
+        };
+    </script>
+</body>
+</html>
