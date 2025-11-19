@@ -150,13 +150,38 @@
             background: #f8f9fa;
             min-width: 0;
             min-height: 0;
-            width: 100%;
+            /* width: 100%; */
+            width: auto;
             display: flex;
             justify-content: center;
             align-items: flex-start;
             /* 防止闪烁 */
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
+        }
+
+        #meetingContent {
+            margin-left: 50px;
+            min-width: calc(100% - 50px);
+            width: calc(100% - 50px);
+            box-sizing: border-box;
+        }
+
+        /* 响应式设计：在小屏幕上调整间距 */
+        @media (max-width: 768px) {
+            #meetingContent {
+                margin-left: 20px;
+                min-width: calc(100% - 20px);
+                width: calc(100% - 20px);
+            }
+        }
+
+        @media (max-width: 480px) {
+            #meetingContent {
+                margin-left: 10px;
+                min-width: calc(100% - 10px);
+                width: calc(100% - 10px);
+            }
         }
 
         .meeting-hall {
@@ -168,9 +193,10 @@
             min-height: 600px;
             height: auto;
             margin: 0 auto;
-            width: 100%;
+            /* width: 100%; */
+            width: auto;
             min-width: 800px;
-            max-width: 1200px;
+            /* max-width: 1200px; */
             box-sizing: border-box;
             display: block;
             transition: none; /* 禁用过渡效果避免闪烁 */
@@ -269,14 +295,36 @@
         }
 
         .audience-section {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 2rem;
-            margin-top: 2rem;
-            padding: 1rem;
-            background: #f8f9fa;
+            min-height: 600px;
+            min-width: 1200px;
+            background: white;
             border-radius: 10px;
-            border: 2px dashed #dee2e6;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            padding: 2rem;
+            position: relative;
+            display: flex !important;
+            flex-wrap: wrap;
+            gap: 3rem;
+            justify-content: flex-start;
+            align-items: flex-start;
+            width: auto;
+            height: auto;
+            transition: all 0.3s ease;
+            margin: 0 auto;
+            background-image: 
+                linear-gradient(rgba(200,200,200,0.3) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(200,200,200,0.3) 1px, transparent 1px);
+            background-size: 20px 20px;
+            border: none; /* 移除虚线边框 */
+        }
+
+        .audience-section.expanded {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .audience-section.expanding {
+            box-shadow: 0 8px 30px rgba(74, 144, 226, 0.3);
+            border-color: #4a90e2;
         }
 
         .audience-block {
@@ -286,17 +334,30 @@
             text-align: center;
             border: 2px solid #dee2e6;
             transition: all 0.3s ease;
-            position: relative;
             min-height: 200px;
-            width: fit-content;
-            min-width: 300px;
-            max-width: 100%;
-            margin: 0 auto;
+            width: 300px;
+            cursor: move;
+            user-select: none;
+            flex-shrink: 0;
+            position: relative;
         }
 
         .audience-block:hover {
-            border-color: #3498db;
-            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .audience-block.dragging {
+            cursor: grabbing;
+            z-index: 1000;
+            transform: rotate(5deg) scale(1.05);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+            opacity: 0.9;
+            transition: none; /* 拖动时禁用过渡效果 */
+        }
+        
+        .audience-block.dragging * {
+            pointer-events: none; /* 拖动时子元素不响应鼠标事件 */
         }
 
         .audience-block.editing {
@@ -387,6 +448,58 @@
             transform: translateY(-1px);
         }
 
+        /* 浮动大加号按钮样式 */
+        .floating-add-btn {
+            position: fixed;
+            right: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 24px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .floating-add-btn:hover {
+            background: linear-gradient(135deg, #229954, #27ae60);
+            transform: translateY(-50%) scale(1.1);
+            box-shadow: 0 6px 20px rgba(39, 174, 96, 0.6);
+        }
+
+        .floating-add-btn:active {
+            transform: translateY(-50%) scale(0.95);
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .floating-add-btn {
+                right: 20px;
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .floating-add-btn {
+                right: 15px;
+                width: 45px;
+                height: 45px;
+                font-size: 18px;
+            }
+        }
+
         .area-edit-controls {
             display: none;
             position: absolute;
@@ -416,6 +529,15 @@
 
         .area-edit-btn.save:hover {
             background: #229954;
+        }
+
+        .area-edit-btn.edit {
+            background: #3498db;
+            color: white;
+        }
+
+        .area-edit-btn.edit:hover {
+            background: #2980b9;
         }
 
         .area-edit-btn.delete {
@@ -641,13 +763,15 @@
                 </div>
             </aside>
             <main class="main-area">
-                <div class="meeting-hall" id="meetingHall">
-                    <div class="stage" id="stage">
-                        🎭 舞台区域
-                    </div>
-                    
-                    <div class="seating-area" id="seatingArea">
-                        <!-- 座位布局将在这里动态生成 -->
+                <div  id="meetingContent">
+                    <div class="meeting-hall" id="meetingHall">
+                        <div class="stage" id="stage">
+                            🎭 舞台区域
+                        </div>
+                        
+                        <div class="seating-area" id="seatingArea">
+                            <!-- 座位布局将在这里动态生成 -->
+                        </div>
                     </div>
                 </div>
             </main>
@@ -661,6 +785,69 @@
 
 
     <script>
+        // 全局模态框函数（为 meeting.html 页面单独定义）
+        function showModal(message, title = '提示', type = 'info') {
+            // 创建模态框元素
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'flex';
+            modal.style.alignItems = 'center';
+            modal.style.justifyContent = 'center';
+            
+            // 设置图标和颜色基于类型
+            let icon = 'ℹ️';
+            let color = '#3498db';
+            
+            switch(type) {
+                case 'success':
+                    icon = '✅';
+                    color = '#27ae60';
+                    break;
+                case 'error':
+                    icon = '❌';
+                    color = '#e74c3c';
+                    break;
+                case 'warning':
+                    icon = '⚠️';
+                    color = '#f39c12';
+                    break;
+            }
+            
+            modal.innerHTML = `
+                <div class="modal-content" style="width: 350px; text-align: center;">
+                    <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">${icon}</div>
+                    <h3 style="color: ${color}; margin-bottom: 1rem; margin-top: 0;">${title}</h3>
+                    <p style="margin-bottom: 1.5rem; color: #555; line-height: 1.5;">${message}</p>
+                    <button class="btn btn-primary" onclick="this.closest('.modal').remove()" style="background: ${color}; border: none; padding: 0.5rem 1.5rem; border-radius: 5px; cursor: pointer; font-size: 0.9rem;">确定</button>
+                </div>
+            `;
+            
+            // 添加到body
+            document.body.appendChild(modal);
+            
+            // 点击外部关闭
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+            
+            // ESC键关闭
+            const escHandler = (e) => {
+                if (e.key === 'Escape') {
+                    modal.remove();
+                    document.removeEventListener('keydown', escHandler);
+                }
+            };
+            document.addEventListener('keydown', escHandler);
+        }
+
+        // 简化的消息显示函数
+        function showMessage(message, type = 'info') {
+            showModal(message, type === 'error' ? '错误' : type === 'success' ? '成功' : '提示', type);
+        }
+
         let seats = [];
         let selectedSeat = null;
         let isInitializing = true; // 添加初始化标志
@@ -841,24 +1028,15 @@
             audienceTitle.textContent = `👥 观众席`;
             audienceTitleSection.appendChild(audienceTitle);
             
-            const addAreaBtn = document.createElement('button');
-            addAreaBtn.className = 'add-area-btn';
-            addAreaBtn.textContent = '➕ 增加观众区';
-            addAreaBtn.onclick = addAudienceArea;
-            audienceTitleSection.appendChild(addAreaBtn);
-            
             container.appendChild(audienceTitleSection);
             
             const audienceSection = document.createElement('div');
             audienceSection.className = 'audience-section';
             audienceSection.id = 'audienceSection';
             
-            // 创建默认的2*2区域，每个区域4排8座
+            // 创建默认的1个观众区，4排8座
             const defaultAreas = [
-                { name: 'A区', rows: 4, cols: 8, x: 0, y: 0 },
-                { name: 'B区', rows: 4, cols: 8, x: 1, y: 0 },
-                { name: 'C区', rows: 4, cols: 8, x: 0, y: 1 },
-                { name: 'D区', rows: 4, cols: 8, x: 1, y: 1 }
+                { name: 'A区', rows: 4, cols: 8, x: 0, y: 0 }
             ];
             
             defaultAreas.forEach((area, index) => {
@@ -866,6 +1044,14 @@
             });
             
             container.appendChild(audienceSection);
+            
+            // 创建浮动的大加号按钮
+            const floatingAddBtn = document.createElement('button');
+            floatingAddBtn.className = 'floating-add-btn';
+            floatingAddBtn.innerHTML = '+';
+            floatingAddBtn.title = '增加观众区';
+            floatingAddBtn.onclick = addAudienceArea;
+            document.body.appendChild(floatingAddBtn);
         }
 
         // 创建观众席区域
@@ -877,18 +1063,18 @@
             areaBlock.dataset.cols = areaConfig.cols;
             areaBlock.dataset.name = areaConfig.name;
             
-            // 区域标题 - 双击打开弹窗编辑
+            // 区域标题
             const areaTitle = document.createElement('h4');
             areaTitle.textContent = areaConfig.name;
-            areaTitle.ondblclick = () => enterAreaEditMode(areaBlock);
-            areaTitle.style.cursor = 'pointer';
-            areaTitle.title = '双击编辑区域信息';
+            areaTitle.style.cursor = 'default';
+            areaTitle.title = '拖动区域块，双击恢复位置';
             areaBlock.appendChild(areaTitle);
             
-            // 编辑控制按钮（简化版，只保留删除按钮）
+            // 编辑控制按钮（添加编辑和删除按钮）
             const editControls = document.createElement('div');
             editControls.className = 'area-edit-controls';
             editControls.innerHTML = `
+                <button class="area-edit-btn edit" onclick="openAreaTitleModal(${index})" title="编辑区域">编辑</button>
                 <button class="area-edit-btn delete" onclick="deleteArea(${index})" title="删除区域">删除</button>
             `;
             areaBlock.appendChild(editControls);
@@ -899,22 +1085,12 @@
             seatsGrid.id = `seatsGrid${index}`;
             areaBlock.appendChild(seatsGrid);
             
-            // 生成座位
-            generateAreaSeats(areaBlock, areaConfig, index);
-            
-            container.appendChild(areaBlock);
-        }
-
-        // 生成区域座位
-        function generateAreaSeats(areaBlock, areaConfig, areaIndex) {
-            const seatsGrid = areaBlock.querySelector(`#seatsGrid${areaIndex}`);
+            // 手动创建座位网格（替代generateAreaSeats调用）
             seatsGrid.innerHTML = '';
             
-            // 根据列数动态调整网格，确保自适应宽度
-            const maxColumnsPerRow = Math.min(areaConfig.cols, 20); // 限制最大列数避免过宽
+            // 设置网格样式
+            const maxColumnsPerRow = Math.min(areaConfig.cols, 20);
             seatsGrid.style.gridTemplateColumns = `repeat(${maxColumnsPerRow}, minmax(35px, 1fr))`;
-            
-            // 确保座位网格在区域内水平居中
             seatsGrid.style.display = 'grid';
             seatsGrid.style.justifyContent = 'center';
             seatsGrid.style.marginLeft = 'auto';
@@ -922,10 +1098,26 @@
             seatsGrid.style.width = 'fit-content';
             
             // 调整区域块的宽度
-            const optimalWidth = Math.min(maxColumnsPerRow * 55 + 40, window.innerWidth - 100); // 55px per seat + gaps, max viewport width
+            const optimalWidth = Math.min(maxColumnsPerRow * 55 + 40, window.innerWidth - 100);
             areaBlock.style.width = `${optimalWidth}px`;
             areaBlock.style.maxWidth = '100%';
+            areaBlock.title = '拖动区域块，双击恢复位置';
             
+            // 设置初始位置（避免重叠）
+            const existingAreas = container.querySelectorAll('.audience-block');
+            const rowIndex = Math.floor(index / 2); // 每行2个区域
+            const colIndex = index % 2; // 每行2列
+            const horizontalSpacing = 420; // 水平间距
+            const verticalSpacing = 220; // 垂直间距
+            
+            const initialLeft = 20 + colIndex * horizontalSpacing;
+            const initialTop = 20 + rowIndex * verticalSpacing;
+            
+            areaBlock.style.position = 'absolute';
+            areaBlock.style.left = initialLeft + 'px';
+            areaBlock.style.top = initialTop + 'px';
+            
+            // 手动生成座位
             let seatCounter = 0;
             for (let row = 0; row < areaConfig.rows; row++) {
                 for (let col = 0; col < areaConfig.cols; col++) {
@@ -936,13 +1128,13 @@
                     seatElement.dataset.row = row + 1;
                     seatElement.dataset.number = col + 1;
                     seatElement.dataset.type = 'audience';
-                    seatElement.dataset.areaId = areaIndex;
+                    seatElement.dataset.areaId = index;
                     seatElement.onclick = () => selectSeat(seatElement);
                     
                     seats.push({
                         element: seatElement,
                         area: areaConfig.name,
-                        areaId: areaIndex,
+                        areaId: index,
                         row: row + 1,
                         number: col + 1,
                         type: 'audience',
@@ -955,11 +1147,344 @@
             }
             
             // 更新区域标题显示座位数
-            areaBlock.querySelector('h4').textContent = `${areaConfig.name} (${areaConfig.rows}排×${areaConfig.cols}列=${seatCounter}座)`;
+            areaTitle.textContent = `${areaConfig.name} (${areaConfig.rows}排×${areaConfig.cols}列=${seatCounter}座)`;
             
             // 调整会议厅大小
             setTimeout(adjustMeetingHallSize, 100);
+            
+            // 添加拖动功能
+            makeAreaDraggable(areaBlock);
+            
+            container.appendChild(areaBlock);
         }
+        
+        // 使区域可拖动（直接拖动模式，与banquet.html餐桌一致）
+        function makeAreaDraggable(areaBlock) {
+            let isDragging = false;
+            let startX, startY, startLeft, startTop;
+            let originalPosition = '';
+            let originalTransform = '';
+            
+            // 鼠标按下事件 - 直接开始拖动，不需要长按
+            areaBlock.addEventListener('mousedown', function(e) {
+                // 检查是否点击在空白区域（不是按钮、座位、标题等可交互元素）
+                if (e.target.classList.contains('seat') || 
+                    e.target.classList.contains('area-edit-btn') ||
+                    e.target.tagName === 'BUTTON' ||
+                    e.target.tagName === 'H4') {
+                    return; // 不开始拖动
+                }
+                
+                startX = e.clientX;
+                startY = e.clientY;
+                
+                // 记录当前位置
+                const computedStyle = window.getComputedStyle(areaBlock);
+                originalPosition = computedStyle.position;
+                originalTransform = computedStyle.transform;
+                startLeft = parseFloat(computedStyle.left) || 0;
+                startTop = parseFloat(computedStyle.top) || 0;
+                
+                // 如果还没有设置绝对定位，先设置并计算初始位置
+                if (computedStyle.position !== 'absolute') {
+                    const rect = areaBlock.getBoundingClientRect();
+                    const parentRect = areaBlock.parentElement.getBoundingClientRect();
+                    startLeft = rect.left - parentRect.left;
+                    startTop = rect.top - parentRect.top;
+                }
+                
+                // 直接开始拖动，不需要长按等待
+                isDragging = true;
+                areaBlock.style.position = 'absolute';
+                areaBlock.style.left = startLeft + 'px';
+                areaBlock.style.top = startTop + 'px';
+                areaBlock.style.cursor = 'grabbing';
+                areaBlock.style.zIndex = '1000';
+                areaBlock.classList.add('dragging');
+                
+                // 阻止文本选择
+                e.preventDefault();
+            });
+            
+            // 鼠标移动事件
+            document.addEventListener('mousemove', function(e) {
+                if (isDragging) {
+                    e.preventDefault();
+                    
+                    const deltaX = e.clientX - startX;
+                    const deltaY = e.clientY - startY;
+                    
+                    // 计算新位置
+                    let newLeft = startLeft + deltaX;
+                    let newTop = startTop + deltaY;
+                    
+                    // 限制在父容器内
+                    const parent = areaBlock.parentElement;
+                    const parentRect = parent.getBoundingClientRect();
+                    const blockRect = areaBlock.getBoundingClientRect();
+                    
+                    // 计算边界（考虑padding）
+                    const parentStyle = window.getComputedStyle(parent);
+                    const paddingLeft = parseFloat(parentStyle.paddingLeft) || 0;
+                    const paddingTop = parseFloat(parentStyle.paddingTop) || 0;
+                    const paddingRight = parseFloat(parentStyle.paddingRight) || 0;
+                    const paddingBottom = parseFloat(parentStyle.paddingBottom) || 0;
+                    
+                    // 限制：不能向上拖动（newTop不能小于0）
+                    // 左侧、右侧、下方可以自由拖动，画布会自动扩展
+                    newLeft = Math.max(0, newLeft); // 左侧限制
+                    newTop = Math.max(0, newTop); // 不能向上拖动，但可以向下无限拖动
+                    
+                    // 应用新位置
+                    areaBlock.style.left = newLeft + 'px';
+                    areaBlock.style.top = newTop + 'px';
+                    
+                    // 检查是否需要扩展画布（当拖动到边缘时）
+                    checkAndExpandCanvasWhileDragging(e, areaBlock);
+                    
+                    // 拖动过程中实时调整会议厅大小
+                    setTimeout(adjustMeetingHallSize, 50);
+                }
+            });
+            
+            // 鼠标释放事件
+            document.addEventListener('mouseup', function(e) {
+                if (isDragging) {
+                    isDragging = false;
+                    areaBlock.style.cursor = 'move';
+                    areaBlock.style.zIndex = '';
+                    areaBlock.classList.remove('dragging');
+                    
+                    // 网格对齐（类似banquet.html的snapTableToGrid功能）
+                    snapAreaToGrid(areaBlock);
+                    
+                    // 检查并扩展画布
+                    checkAndExpandCanvas(e);
+                    
+                    // 拖动结束后调整会议厅大小
+                    setTimeout(adjustMeetingHallSize, 100);
+                }
+            });
+            
+            // 鼠标离开事件（防止拖动时鼠标离开浏览器）
+            document.addEventListener('mouseleave', function(e) {
+                if (isDragging) {
+                    isDragging = false;
+                    areaBlock.style.cursor = 'move';
+                    areaBlock.style.zIndex = '';
+                    areaBlock.classList.remove('dragging');
+                    
+                    // 网格对齐
+                    snapAreaToGrid(areaBlock);
+                    
+                    // 检查并扩展画布
+                    checkAndExpandCanvas(e);
+                }
+            });
+            
+            // 网格对齐功能
+            function snapAreaToGrid(areaBlock) {
+                const gridSize = 20; // 网格大小，与banquet.html一致
+                const currentLeft = parseFloat(areaBlock.style.left) || 0;
+                const currentTop = parseFloat(areaBlock.style.top) || 0;
+                
+                // 对齐到网格
+                const snappedLeft = Math.round(currentLeft / gridSize) * gridSize;
+                const snappedTop = Math.round(currentTop / gridSize) * gridSize;
+                
+                areaBlock.style.left = snappedLeft + 'px';
+                areaBlock.style.top = snappedTop + 'px';
+                
+                // 每次移动后适配网络面板大小
+                adjustAreaToNetworkPanel(areaBlock);
+            }
+            
+            // 调整区域以适应网络面板大小
+            function adjustAreaToNetworkPanel(areaBlock) {
+                const networkPanel = document.querySelector('.network-panel');
+                if (!networkPanel) return;
+                
+                const panelRect = networkPanel.getBoundingClientRect();
+                const blockRect = areaBlock.getBoundingClientRect();
+                
+                // 计算最大可用空间（考虑边距）
+                const margin = 20;
+                const maxWidth = panelRect.width - margin * 2;
+                const maxHeight = panelRect.height - margin * 2 - 60; // 减去标题空间
+                
+                // 基于当前位置计算最大尺寸
+                const currentLeft = parseFloat(areaBlock.style.left) || 0;
+                const currentTop = parseFloat(areaBlock.style.top) || 0;
+                
+                const availableWidth = maxWidth - currentLeft;
+                const availableHeight = maxHeight - currentTop;
+                
+                // 设置合理的尺寸范围
+                const newWidth = Math.max(200, Math.min(400, availableWidth));
+                const newHeight = Math.max(150, Math.min(300, availableHeight));
+                
+                areaBlock.style.width = newWidth + 'px';
+                areaBlock.style.height = newHeight + 'px';
+                
+                // 调整内部座位网格
+                adjustSeatsGridInArea(areaBlock);
+                
+                // 检查并调整位置，确保不超出面板边界
+                adjustAreaPositionToPanel(areaBlock);
+            }
+            
+            // 调整区域位置以确保在网络面板内
+            function adjustAreaPositionToPanel(areaBlock) {
+                const networkPanel = document.querySelector('.network-panel');
+                if (!networkPanel) return;
+                
+                const panelRect = networkPanel.getBoundingClientRect();
+                const blockRect = areaBlock.getBoundingClientRect();
+                const margin = 20;
+                
+                let currentLeft = parseFloat(areaBlock.style.left) || 0;
+                let currentTop = parseFloat(areaBlock.style.top) || 0;
+                
+                // 检查右边界
+                if (blockRect.right > panelRect.right - margin) {
+                    currentLeft = panelRect.right - blockRect.width - margin;
+                }
+                
+                // 检查下边界
+                if (blockRect.bottom > panelRect.bottom - margin) {
+                    currentTop = panelRect.bottom - blockRect.height - margin;
+                }
+                
+                // 确保不超出左边界和上边界
+                currentLeft = Math.max(margin, currentLeft);
+                currentTop = Math.max(margin, currentTop);
+                
+                areaBlock.style.left = currentLeft + 'px';
+                areaBlock.style.top = currentTop + 'px';
+            }
+            
+            // 调整区域内的座位网格
+            function adjustSeatsGridInArea(areaBlock) {
+                const seatsGrid = areaBlock.querySelector('.area-seats-grid');
+                if (!seatsGrid) return;
+                
+                const areaWidth = areaBlock.offsetWidth;
+                const seatSize = 35; // 每个座位的大致尺寸
+                
+                // 基于区域宽度计算合适的列数
+                const cols = Math.max(4, Math.floor((areaWidth - 40) / seatSize)); // 减去padding
+                const rows = Math.ceil(seatsGrid.children.length / cols);
+                
+                // 更新网格样式
+                seatsGrid.style.gridTemplateColumns = `repeat(${cols}, minmax(${seatSize}px, 1fr))`;
+                
+                // 更新配置输入框的值（如果存在）
+                const areaIndex = areaBlock.dataset.areaId;
+                if (areaIndex !== undefined) {
+                    const widthInput = document.querySelector(`input[data-config="width"][data-area-id="${areaIndex}"]`);
+                    const heightInput = document.querySelector(`input[data-config="height"][data-area-id="${areaIndex}"]`);
+                    
+                    if (widthInput) widthInput.value = areaWidth;
+                    if (heightInput) heightInput.value = areaBlock.offsetHeight;
+                }
+            }
+            
+            // 检查和扩展画布功能（拖动结束时调用）
+            function checkAndExpandCanvas(e) {
+                const audienceSection = document.querySelector('.audience-section');
+                if (!audienceSection) return;
+                
+                const rect = audienceSection.getBoundingClientRect();
+                const threshold = 50; // 边缘检测阈值
+                const expandAmount = 200; // 扩展量
+                
+                let needExpand = false;
+                let newWidth = audienceSection.offsetWidth;
+                let newHeight = audienceSection.offsetHeight;
+                
+                // 检查右边缘
+                if (e.clientX > rect.right - threshold) {
+                    newWidth += expandAmount;
+                    needExpand = true;
+                }
+                
+                // 检查下边缘
+                if (e.clientY > rect.bottom - threshold) {
+                    newHeight += expandAmount;
+                    needExpand = true;
+                }
+                
+                if (needExpand) {
+                    audienceSection.style.minWidth = newWidth + 'px';
+                    audienceSection.style.minHeight = newHeight + 'px';
+                    audienceSection.classList.add('expanding');
+                    
+                    setTimeout(() => {
+                        audienceSection.classList.remove('expanding');
+                        audienceSection.classList.add('expanded');
+                        // 画布扩展后调整会议厅大小
+                        setTimeout(adjustMeetingHallSize, 100);
+                    }, 300);
+                }
+            }
+            
+            // 拖动过程中检查画布扩展
+            function checkAndExpandCanvasWhileDragging(e, areaBlock) {
+                const audienceSection = document.querySelector('.audience-section');
+                if (!audienceSection || !areaBlock) return;
+                
+                const blockRect = areaBlock.getBoundingClientRect();
+                const sectionRect = audienceSection.getBoundingClientRect();
+                const threshold = 50; // 边缘检测阈值
+                const expandAmount = 200; // 扩展量
+                
+                let needExpand = false;
+                let newWidth = audienceSection.offsetWidth;
+                let newHeight = audienceSection.offsetHeight;
+                
+                // 检查右边缘 - 区域块的右边缘接近画布右边缘时扩展
+                if (blockRect.right >= sectionRect.right - threshold) {
+                    newWidth += expandAmount;
+                    needExpand = true;
+                }
+                
+                // 检查下边缘 - 区域块的下边缘接近画布下边缘时扩展
+                if (blockRect.bottom >= sectionRect.bottom - threshold) {
+                    newHeight += expandAmount;
+                    needExpand = true;
+                }
+                
+                if (needExpand) {
+                    audienceSection.style.minWidth = newWidth + 'px';
+                    audienceSection.style.minHeight = newHeight + 'px';
+                    audienceSection.classList.add('expanding');
+                    
+                    setTimeout(() => {
+                        audienceSection.classList.remove('expanding');
+                        audienceSection.classList.add('expanded');
+                    }, 300);
+                }
+            }
+            
+            // 阻止点击事件在拖动时触发
+            areaBlock.addEventListener('click', function(e) {
+                if (areaBlock.classList.contains('dragging')) {
+                    e.stopPropagation();
+                }
+            });
+            
+            // 双击恢复原始位置和状态
+            areaBlock.addEventListener('dblclick', function() {
+                if (originalPosition !== 'absolute') {
+                    areaBlock.style.position = originalPosition;
+                    areaBlock.style.left = '';
+                    areaBlock.style.top = '';
+                    areaBlock.style.transform = originalTransform;
+                }
+            });
+        }
+
+        // 生成区域座位函数已删除 - 所有座位创建现在通过手动方式实现
 
         // 进入区域编辑模式
         function enterAreaEditMode(areaBlock) {
@@ -1042,28 +1567,15 @@ function addAudienceArea() {
             setTimeout(adjustMeetingHallSize, 100);
         }
 
-        // 重新调整所有区域的宽度
+        // 重新调整所有区域的宽度（已删除自动调整功能）
         function adjustAllAreasWidth() {
-            const audienceSection = document.getElementById('audienceSection');
-            const areas = audienceSection.querySelectorAll('.audience-block');
-            
-            areas.forEach((areaBlock, index) => {
-                const rows = parseInt(areaBlock.dataset.rows);
-                const cols = parseInt(areaBlock.dataset.cols);
-                const areaConfig = {
-                    name: areaBlock.dataset.name,
-                    rows: rows,
-                    cols: cols
-                };
-                
-                // 重新生成座位以调整宽度
-                generateAreaSeats(areaBlock, areaConfig, index);
-            });
+            // 此函数已删除自动调整功能
+            // 区域宽度现在通过手动添加区域功能实现，不再自动调整
         }
 
-        // 窗口大小改变时重新调整
+        // 窗口大小改变时调整会议厅大小（已删除自动调整区域功能）
         window.addEventListener('resize', function() {
-            setTimeout(adjustAllAreasWidth, 100);
+            // 仅调整会议厅大小，不再自动调整观众席区域
             setTimeout(adjustMeetingHallSize, 200);
         });
 
@@ -1073,54 +1585,49 @@ function addAudienceArea() {
             
             const meetingHall = document.getElementById('meetingHall');
             const seatingArea = document.getElementById('seatingArea');
+            const audienceSection = document.querySelector('.audience-section');
             
-            if (!meetingHall || !seatingArea) return;
+            if (!meetingHall || !seatingArea || !audienceSection) return;
             
-            // 计算内容实际需要的尺寸
-            const seatingAreaRect = seatingArea.getBoundingClientRect();
+            // 获取观众席画布的当前尺寸
+            // 优先使用样式设置的minWidth/minHeight，如果没有则使用offsetWidth/offsetHeight
+            const styleMinWidth = audienceSection.style.minWidth ? parseInt(audienceSection.style.minWidth) : 0;
+            const styleMinHeight = audienceSection.style.minHeight ? parseInt(audienceSection.style.minHeight) : 0;
+            
+            const audienceSectionWidth = Math.max(styleMinWidth, audienceSection.offsetWidth);
+            const audienceSectionHeight = Math.max(styleMinHeight, audienceSection.offsetHeight);
+            
+            // 调试信息
+            console.log(`Audience section dimensions: styleMinWidth=${styleMinWidth}, offsetWidth=${audienceSection.offsetWidth}, finalWidth=${audienceSectionWidth}`);
+            console.log(`Audience section dimensions: styleMinHeight=${styleMinHeight}, offsetHeight=${audienceSection.offsetHeight}, finalHeight=${audienceSectionHeight}`);
+            
+            // 计算舞台高度
             const stage = meetingHall.querySelector('.stage');
             const stageHeight = stage ? stage.offsetHeight + 40 : 0; // 40px for margins
             
-            // 计算所有子元素的总高度
-            let totalHeight = 0;
-            Array.from(meetingHall.children).forEach(child => {
-                totalHeight += child.offsetHeight + 20; // 20px for margins
-            });
+            // 计算所有子元素的总高度（包括舞台和座位区域）
+            let totalHeight = stageHeight;
             
-            // 计算最大宽度（考虑所有区域）
-            const audienceAreas = seatingArea.querySelectorAll('.audience-block');
+            // 添加座位区域的高度（考虑内边距）
+            const seatingAreaPadding = 60; // 上下内边距总和
+            totalHeight += audienceSectionHeight + seatingAreaPadding;
+            
+            // 计算最大宽度：直接基于观众席画布宽度
+            let maxWidth = audienceSectionWidth + 80; // 80px for padding
+            
+            
+            // 检查领导席宽度，但确保不小于观众席画布宽度
             const leaderSection = seatingArea.querySelector('.leader-section');
-            
-            let maxWidth = 800; // 最小宽度
-            
             if (leaderSection) {
                 const leaderRows = leaderSection.querySelectorAll('.seat-row');
                 leaderRows.forEach(row => {
-                    maxWidth = Math.max(maxWidth, row.scrollWidth + 40);
+                    maxWidth = Math.max(maxWidth, row.scrollWidth + 80); // 80px for padding
                 });
             }
             
-            if (audienceAreas.length > 0) {
-                let totalAreasWidth = 0;
-                let maxAreaWidth = 0;
-                
-                audienceAreas.forEach(area => {
-                    const areaWidth = area.scrollWidth + 40; // 40px for padding and gaps
-                    maxAreaWidth = Math.max(maxAreaWidth, areaWidth);
-                    totalAreasWidth += areaWidth;
-                });
-                
-                // 根据网格布局计算总宽度
-                const gridColumns = window.innerWidth <= 768 ? 1 : 2;
-                const areasPerRow = Math.ceil(audienceAreas.length / gridColumns);
-                const areasWidth = maxAreaWidth * Math.min(2, audienceAreas.length) + (Math.min(2, audienceAreas.length) - 1) * 32; // 32px for gaps
-                
-                maxWidth = Math.max(maxWidth, areasWidth);
-            }
-            
-            // 应用计算出的尺寸 - 使用更稳定的尺寸计算
-            const finalWidth = Math.min(maxWidth + 80, window.innerWidth - 120); // 80px for padding, 120px for margins
-            const finalHeight = Math.max(totalHeight + 60, 600); // 60px for padding, 最小600px
+            // 应用计算出的尺寸 - 适配观众席画布尺寸
+            const finalWidth = Math.max(maxWidth, 800); // 最小800px
+            const finalHeight = Math.max(totalHeight + 60, 600); // 最小600px，包含内边距
             
             // 只在尺寸有显著变化时才更新，避免频繁重排
             const currentWidth = parseInt(meetingHall.style.width) || 0;
@@ -1228,7 +1735,7 @@ function addAudienceArea() {
             link.download = 'meeting_layout.json';
             link.click();
             
-            alert('布局已导出！');
+            showMessage('布局已导出！', 'success');
         }
 
         // 点击模态框外部关闭
@@ -1279,7 +1786,7 @@ function addAudienceArea() {
             document.getElementById('areaTitleModal').dataset.editingAreaId = '';
         }
 
-        // 从弹窗保存区域标题
+        // 从弹窗保存区域标题（重构为手动更新，不再自动重新生成座位）
         function saveAreaTitleFromModal() {
             const areaIndex = document.getElementById('areaTitleModal').dataset.editingAreaId;
             if (!areaIndex && areaIndex !== '0') return;
@@ -1294,18 +1801,57 @@ function addAudienceArea() {
             areaBlock.dataset.rows = newRows;
             areaBlock.dataset.cols = newCols;
             
-            // 重新生成座位
-            const areaConfig = {
-                name: newName,
-                rows: newRows,
-                cols: newCols
-            };
+            // 手动重新创建座位网格（替代自动重新生成）
+            const seatsGrid = areaBlock.querySelector('.area-seats-grid');
+            seatsGrid.innerHTML = '';
+            
+            // 设置网格样式
+            seatsGrid.style.gridTemplateColumns = `repeat(${Math.min(newCols, 20)}, minmax(35px, 1fr))`;
+            seatsGrid.style.display = 'grid';
+            seatsGrid.style.justifyContent = 'center';
+            seatsGrid.style.marginLeft = 'auto';
+            seatsGrid.style.marginRight = 'auto';
+            seatsGrid.style.width = 'fit-content';
+            
+            // 调整区域块的宽度
+            const optimalWidth = Math.min(newCols * 55 + 40, window.innerWidth - 100);
+            areaBlock.style.width = `${optimalWidth}px`;
+            areaBlock.style.maxWidth = '100%';
             
             // 清除该区域的旧座位数据
             seats = seats.filter(seat => seat.areaId !== parseInt(areaIndex));
             
-            // 重新生成座位
-            generateAreaSeats(areaBlock, areaConfig, parseInt(areaIndex));
+            // 手动生成新座位
+            let seatCounter = 0;
+            for (let row = 0; row < newRows; row++) {
+                for (let col = 0; col < newCols; col++) {
+                    const seatElement = document.createElement('div');
+                    seatElement.className = 'seat';
+                    seatElement.textContent = `${row + 1}-${col + 1}`;
+                    seatElement.dataset.area = newName;
+                    seatElement.dataset.row = row + 1;
+                    seatElement.dataset.number = col + 1;
+                    seatElement.dataset.type = 'audience';
+                    seatElement.dataset.areaId = areaIndex;
+                    seatElement.onclick = () => selectSeat(seatElement);
+                    
+                    seats.push({
+                        element: seatElement,
+                        area: newName,
+                        areaId: parseInt(areaIndex),
+                        row: row + 1,
+                        number: col + 1,
+                        type: 'audience',
+                        occupied: false
+                    });
+                    
+                    seatsGrid.appendChild(seatElement);
+                    seatCounter++;
+                }
+            }
+            
+            // 更新区域标题显示座位数
+            areaBlock.querySelector('h4').textContent = `${newName} (${newRows}排×${newCols}列=${seatCounter}座)`;
             
             // 关闭弹窗
             closeAreaTitleModal();
@@ -1315,6 +1861,54 @@ function addAudienceArea() {
             
             // 调整会议厅大小
             setTimeout(adjustMeetingHallSize, 100);
+        }
+
+        // 修改双击事件处理函数
+        function enterAreaEditMode(areaBlock) {
+            const areaIndex = areaBlock.dataset.areaId;
+            // 改为打开弹窗而不是进入编辑模式
+            openAreaTitleModal(areaIndex);
+        }
+    </script>
+
+    <!-- 观众席区域标题编辑弹窗 -->
+    <div id="areaTitleModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAreaTitleModal()">&times;</span>
+            <h3 style="margin-bottom: 1.5rem; color: #2c3e50;">编辑区域信息</h3>
+            <div class="form-group">
+                <label for="modalAreaName">区域名称：</label>
+                <input type="text" id="modalAreaName" maxlength="10" placeholder="请输入区域名称">
+            </div>
+            <div class="form-group">
+                <label for="modalAreaRows">行数：</label>
+                <input type="number" id="modalAreaRows" min="1" max="10" value="4">
+            </div>
+            <div class="form-group">
+                <label for="modalAreaCols">列数：</label>
+                <input type="number" id="modalAreaCols" min="1" max="20" value="8">
+            </div>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                <button class="btn btn-secondary" onclick="closeAreaTitleModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveAreaTitleFromModal()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除确认模态框 -->
+    <div id="deleteConfirmModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeDeleteConfirmModal()">&times;</span>
+            <h3>确认删除</h3>
+            <p id="deleteConfirmMessage">确定要删除这个区域吗？此操作不可撤销。</p>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                <button class="btn btn-secondary" onclick="closeDeleteConfirmModal()">取消</button>
+                <button class="btn btn-danger" onclick="confirmDeleteArea()">删除</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>00);
         }
 
         // 修改双击事件处理函数

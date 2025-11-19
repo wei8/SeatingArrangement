@@ -1,3 +1,66 @@
+// 全局模态框函数
+function showModal(message, title = '提示', type = 'info') {
+    // 创建模态框元素
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'flex';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
+    
+    // 设置图标和颜色基于类型
+    let icon = 'ℹ️';
+    let color = '#3498db';
+    
+    switch(type) {
+        case 'success':
+            icon = '✅';
+            color = '#27ae60';
+            break;
+        case 'error':
+            icon = '❌';
+            color = '#e74c3c';
+            break;
+        case 'warning':
+            icon = '⚠️';
+            color = '#f39c12';
+            break;
+    }
+    
+    modal.innerHTML = `
+        <div class="modal-content" style="width: 350px; text-align: center;">
+            <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
+            <div style="font-size: 3rem; margin-bottom: 1rem;">${icon}</div>
+            <h3 style="color: ${color}; margin-bottom: 1rem; margin-top: 0;">${title}</h3>
+            <p style="margin-bottom: 1.5rem; color: #555; line-height: 1.5;">${message}</p>
+            <button class="btn btn-primary" onclick="this.closest('.modal').remove()" style="background: ${color}; border: none; padding: 0.5rem 1.5rem; border-radius: 5px; cursor: pointer; font-size: 0.9rem;">确定</button>
+        </div>
+    `;
+    
+    // 添加到body
+    document.body.appendChild(modal);
+    
+    // 点击外部关闭
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+    
+    // ESC键关闭
+    const escHandler = (e) => {
+        if (e.key === 'Escape') {
+            modal.remove();
+            document.removeEventListener('keydown', escHandler);
+        }
+    };
+    document.addEventListener('keydown', escHandler);
+}
+
+// 简化的消息显示函数
+function showMessage(message, type = 'info') {
+    showModal(message, type === 'error' ? '错误' : type === 'success' ? '成功' : '提示', type);
+}
+
 class SeatingArrangement {
     constructor() {
         this.tables = [];
@@ -383,7 +446,7 @@ class SeatingArrangement {
                 // 关闭模态框
                 document.body.removeChild(modal);
             } else {
-                alert('客人姓名不能为空！');
+                showMessage('客人姓名不能为空！', 'error');
             }
         });
         
@@ -1201,24 +1264,24 @@ class SeatingArrangement {
                 } else if (file.name.toLowerCase().endsWith('.csv')) {
                     guestsData = this.parseCSV(content);
                 } else {
-                    alert('不支持的文件格式！请上传JSON或CSV文件。');
+                    showMessage('不支持的文件格式！请上传JSON或CSV文件。', 'error');
                     return;
                 }
                 
                 // 验证数据格式
                 if (!this.validateGuestData(guestsData)) {
-                    alert('数据格式错误！请确保包含姓名字段。');
+                    showMessage('数据格式错误！请确保包含姓名字段。', 'error');
                     return;
                 }
                 
                 // 确认导入
                 if (confirm(`确定要导入 ${guestsData.length} 位客人信息吗？这将覆盖现有的所有客人信息。`)) {
                     this.importGuestData(guestsData);
-                    alert('客人信息导入成功！');
+                    showMessage('客人信息导入成功！', 'success');
                 }
                 
             } catch (error) {
-                alert('文件解析失败：' + error.message);
+                showMessage('文件解析失败：' + error.message, 'error');
             }
         };
         
@@ -1333,7 +1396,7 @@ class SeatingArrangement {
     
     exportImage() {
         if (this.tables.length === 0) {
-            alert('没有餐桌可以导出！请先添加一些餐桌。');
+            showMessage('没有餐桌可以导出！请先添加一些餐桌。', 'warning');
             return;
         }
         
@@ -1341,7 +1404,7 @@ class SeatingArrangement {
             // 获取seatingArea元素
             const seatingArea = document.getElementById('seatingArea');
             if (!seatingArea) {
-                alert('找不到座位区域！');
+                showMessage('找不到座位区域！', 'error');
                 return;
             }
             
@@ -1427,7 +1490,7 @@ class SeatingArrangement {
             
         } catch (error) {
             console.error('导出图片失败:', error);
-            alert('导出图片失败：' + error.message);
+            showMessage('导出图片失败：' + error.message, 'error');
         }
     }
     
