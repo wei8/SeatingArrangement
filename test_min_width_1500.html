@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>观众厅最小宽度1500px测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .test-info {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196F3;
+        }
+        
+        .test-info h3 {
+            margin-top: 0;
+            color: #1976D2;
+        }
+        
+        #meetingHall {
+            border: 2px solid #333;
+            margin: 20px 0;
+            position: relative;
+            background: white;
+            min-width: 1500px;
+            min-height: 600px;
+            transition: all 0.3s ease;
+        }
+        
+        .audience-section {
+            position: relative;
+            min-width: 1500px;
+            min-height: 400px;
+            background: #f9f9f9;
+            border: 1px dashed #ccc;
+            margin: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .audience-block {
+            position: absolute;
+            background: #4CAF50;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            cursor: move;
+            user-select: none;
+            min-width: 150px;
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+        
+        .audience-block:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .audience-block.dragging {
+            transform: rotate(5deg) scale(1.05);
+            z-index: 1000;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+        
+        .size-monitor {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 14px;
+            z-index: 1000;
+        }
+        
+        .size-monitor div {
+            margin-bottom: 5px;
+        }
+        
+        .size-monitor .label {
+            color: #aaa;
+        }
+        
+        .size-monitor .value {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        .size-monitor .changed {
+            color: #ff9800;
+            animation: pulse 0.5s ease-in-out;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .controls {
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0 5px;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background: #1976D2;
+        }
+        
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>观众厅最小宽度1500px测试</h1>
+        
+        <div class="test-info">
+            <h3>测试目的</h3>
+            <p>验证观众厅的最小宽度已正确设置为1500px。</p>
+        </div>
+        
+        <div class="controls">
+            <button onclick="addTestArea()">添加测试区域</button>
+            <button onclick="resetTest()">重置测试</button>
+            <button onclick="checkMinWidth()">检查最小宽度</button>
+        </div>
+        
+        <div id="status" class="status" style="display: none;"></div>
+        
+        <div id="meetingHall">
+            <div class="stage" style="height: 80px; background: #333; color: white; text-align: center; line-height: 80px; font-size: 18px;">
+                舞台区域
+            </div>
+            <div id="audienceSection" class="audience-section"></div>
+        </div>
+    </div>
+    
+    <div class="size-monitor">
+        <div><span class="label">画布宽度:</span> <span id="canvasWidth" class="value">1500</span>px</div>
+        <div><span class="label">画布高度:</span> <span id="canvasHeight" class="value">400</span>px</div>
+        <div><span class="label">会议厅宽度:</span> <span id="hallWidth" class="value">1500</span>px</div>
+        <div><span class="label">会议厅高度:</span> <span id="hallHeight" class="value">600</span>px</div>
+        <div><span class="label">区域数量:</span> <span id="areaCount" class="value">0</span></div>
+        <div><span class="label">最小宽度:</span> <span id="minWidth" class="value">1500</span>px</div>
+    </div>
+
+    <script>
+        // 静态变量定义
+        const MIN_AUDIENCE_WIDTH = 1500; // 观众席最小宽度
+        const MIN_AUDIENCE_HEIGHT = 600; // 观众席最小高度
+        
+        let areaCounter = 0;
+        let lastHallWidth = 1500;
+        
+        // 简化的画布扩展逻辑
+        function checkAndExpandCanvasWhileDragging(e, areaBlock) {
+            const audienceSection = document.querySelector('.audience-section');
+            if (!audienceSection || !areaBlock) return;
+            
+            const blockRect = areaBlock.getBoundingClientRect();
+            const sectionRect = audienceSection.getBoundingClientRect();
+            const threshold = 20;
+            const expandAmount = 50;
+            const contractThreshold = 100;
+            
+            let needResize = false;
+            let newWidth = audienceSection.offsetWidth;
+            let newHeight = audienceSection.offsetHeight;
+            
+            // 扩展检测
+            if (blockRect.right >= sectionRect.right - threshold) {
+                newWidth += expandAmount;
+                needResize = true;
+            }
+            
+            if (blockRect.bottom >= sectionRect.bottom - threshold) {
+                newHeight += expandAmount;
+                needResize = true;
+            }
+            
+            // 收缩检测（使用1500px最小宽度）
+            if (Math.abs(blockRect.right - sectionRect.right) > contractThreshold) {
+                const allBlocks = audienceSection.querySelectorAll('.audience-block');
+                let maxRight = 0;
+                allBlocks.forEach(block => {
+                    const blockRect = block.getBoundingClientRect();
+                    maxRight = Math.max(maxRight, blockRect.right);
+                });
+                
+                const currentRight = sectionRect.right - sectionRect.left;
+                const neededRight = maxRight - sectionRect.left + 50;
+                if (neededRight < currentRight && neededRight > 1500 && maxRight < sectionRect.right - contractThreshold) {
+                    newWidth = Math.max(1500, neededRight);
+                    needResize = true;
+                }
+            }
+            
+            if (needResize) {
+                audienceSection.style.minWidth = newWidth + 'px';
+                audienceSection.style.minHeight = newHeight + 'px';
+                audienceSection.classList.add('expanding');
+                
+                setTimeout(() => {
+                    audienceSection.classList.remove('expanding');
+                }, 300);
+                
+                // 调整会议厅大小
+                adjustMeetingHallSize();
+            }
+        }
+        
+        // 简化的会议厅大小调整
+        function adjustMeetingHallSize() {
+            const meetingHall = document.getElementById('meetingHall');
+            const audienceSection = document.querySelector('.audience-section');
+            
+            if (!meetingHall || !audienceSection) return;
+            
+            const styleMinWidth = audienceSection.style.minWidth ? parseInt(audienceSection.style.minWidth) : 0;
+            const styleMinHeight = audienceSection.style.minHeight ? parseInt(audienceSection.style.minHeight) : 0;
+            
+            const audienceSectionWidth = Math.max(styleMinWidth, audienceSection.offsetWidth);
+            const audienceSectionHeight = Math.max(styleMinHeight, audienceSection.offsetHeight);
+            
+            // 使用1500px最小宽度
+            let maxWidth = audienceSectionWidth + 80;
+            
+            // 基于实际内容计算宽度
+            const allAreaBlocks = audienceSection.querySelectorAll('.audience-block');
+            if (allAreaBlocks.length > 0) {
+                let minLeft = Infinity;
+                let maxRight = 0;
+                
+                allAreaBlocks.forEach(block => {
+                    const blockRect = block.getBoundingClientRect();
+                    const sectionRect = audienceSection.getBoundingClientRect();
+                    const relativeLeft = blockRect.left - sectionRect.left;
+                    const relativeRight = blockRect.right - sectionRect.left;
+                    
+                    minLeft = Math.min(minLeft, relativeLeft);
+                    maxRight = Math.max(maxRight, relativeRight);
+                });
+                
+                const contentWidth = maxRight - minLeft + 80;
+                maxWidth = Math.max(maxWidth, contentWidth);
+            }
+            
+            const finalWidth = Math.max(maxWidth, 1500); // 最小1500px
+            const finalHeight = Math.max(audienceSectionHeight + 160, 600); // 包含舞台高度
+            
+            // 检查宽度变化
+            const currentWidth = parseInt(meetingHall.style.width) || 1500;
+            if (Math.abs(currentWidth - finalWidth) > 50 || Math.abs(parseInt(meetingHall.style.minHeight) || 600) - finalHeight > 50) {
+                
+                meetingHall.style.width = `${finalWidth}px`;
+                meetingHall.style.minHeight = `${finalHeight}px`;
+                
+                lastHallWidth = finalWidth;
+            }
+            
+            updateSizeDisplay();
+        }
+        
+        // 添加测试区域
+        function addTestArea() {
+            const audienceSection = document.getElementById('audienceSection');
+            const areaBlock = document.createElement('div');
+            areaBlock.className = 'audience-block';
+            areaBlock.innerHTML = `<h4>测试区域 ${areaCounter + 1}</h4><p>拖动我进行测试</p>`;
+            areaBlock.style.left = '50px';
+            areaBlock.style.top = '50px';
+            areaBlock.dataset.areaId = areaCounter++;
+            
+            // 添加拖动功能
+            let isDragging = false;
+            let startX, startY, initialX, initialY;
+            
+            areaBlock.addEventListener('mousedown', function(e) {
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                initialX = parseInt(areaBlock.style.left) || 0;
+                initialY = parseInt(areaBlock.style.top) || 0;
+                areaBlock.classList.add('dragging');
+                e.preventDefault();
+            });
+            
+            document.addEventListener('mousemove', function(e) {
+                if (!isDragging) return;
+                
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+                
+                const newLeft = Math.max(0, initialX + deltaX);
+                const newTop = Math.max(0, initialY + deltaY);
+                
+                areaBlock.style.left = newLeft + 'px';
+                areaBlock.style.top = newTop + 'px';
+                
+                // 检查画布扩展
+                checkAndExpandCanvasWhileDragging(e, areaBlock);
+            });
+            
+            document.addEventListener('mouseup', function(e) {
+                if (!isDragging) return;
+                isDragging = false;
+                areaBlock.classList.remove('dragging');
+            });
+            
+            audienceSection.appendChild(areaBlock);
+            updateSizeDisplay();
+            showStatus('测试区域已添加，请拖动进行测试', 'success');
+        }
+        
+        // 检查最小宽度
+        function checkMinWidth() {
+            const meetingHall = document.getElementById('meetingHall');
+            const currentWidth = meetingHall.offsetWidth;
+            
+            if (currentWidth < 1500) {
+                showStatus(`警告：当前宽度${currentWidth}px小于最小宽度1500px！`, 'warning');
+            } else {
+                showStatus(`正常：当前宽度${currentWidth}px符合最小宽度要求`, 'success');
+            }
+        }
+        
+        // 更新尺寸显示
+        function updateSizeDisplay() {
+            const meetingHall = document.getElementById('meetingHall');
+            const audienceSection = document.querySelector('.audience-section');
+            
+            document.getElementById('canvasWidth').textContent = audienceSection.offsetWidth;
+            document.getElementById('canvasHeight').textContent = audienceSection.offsetHeight;
+            document.getElementById('hallWidth').textContent = meetingHall.offsetWidth;
+            document.getElementById('hallHeight').textContent = meetingHall.offsetHeight;
+            document.getElementById('areaCount').textContent = document.querySelectorAll('.audience-block').length;
+            
+            // 高亮变化
+            const hallWidthElement = document.getElementById('hallWidth');
+            if (parseInt(hallWidthElement.textContent) !== lastHallWidth) {
+                hallWidthElement.classList.add('changed');
+                setTimeout(() => hallWidthElement.classList.remove('changed'), 500);
+            }
+        }
+        
+        // 显示状态信息
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    status.style.display = 'none';
+                }, 3000);
+            }
+        }
+        
+        // 重置测试
+        function resetTest() {
+            const audienceSection = document.getElementById('audienceSection');
+            audienceSection.innerHTML = '';
+            audienceSection.style.minWidth = '1500px';
+            audienceSection.style.minHeight = '400px';
+            
+            const meetingHall = document.getElementById('meetingHall');
+            meetingHall.style.width = '1500px';
+            meetingHall.style.minHeight = '600px';
+            
+            areaCounter = 0;
+            lastHallWidth = 1500;
+            
+            updateSizeDisplay();
+            showStatus('测试已重置', 'success');
+        }
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            updateSizeDisplay();
+            addTestArea(); // 自动添加一个测试区域
+        });
+    </script>
+</body>
+</html>

@@ -785,6 +785,10 @@
 
 
     <script>
+        // 静态变量定义
+        const MIN_AUDIENCE_WIDTH = 1500; // 观众席最小宽度
+        const MIN_AUDIENCE_HEIGHT = 600; // 观众席最小高度
+        
         // 全局模态框函数（为 meeting.html 页面单独定义）
         function showModal(message, title = '提示', type = 'info') {
             // 创建模态框元素
@@ -1230,9 +1234,15 @@
                     const paddingRight = parseFloat(parentStyle.paddingRight) || 0;
                     const paddingBottom = parseFloat(parentStyle.paddingBottom) || 0;
                     
+                    // 获取会议厅宽度作为右边界限制
+                    const meetingHall = document.getElementById('meetingHall');
+                    const meetingHallWidth = parseInt(meetingHall.style.width) || meetingHall.offsetWidth;
+                    const maxRight = meetingHallWidth - 20; // 80px 为内边距
+                    
                     // 限制：不能向上拖动（newTop不能小于0）
-                    // 左侧、右侧、下方可以自由拖动，画布会自动扩展
+                    // 左侧可以自由拖动，右侧不能拖出画布边界，下方可以自由拖动
                     newLeft = Math.max(0, newLeft); // 左侧限制
+                    newLeft = Math.min(newLeft, maxRight - blockRect.width); // 右侧限制：不能拖出画布右侧
                     newTop = Math.max(0, newTop); // 不能向上拖动，但可以向下无限拖动
                     
                     // 应用新位置
@@ -1392,30 +1402,59 @@
             // 检查和扩展画布功能（拖动结束时调用）
             function checkAndExpandCanvas(e) {
                 const audienceSection = document.querySelector('.audience-section');
-                if (!audienceSection) return;
+                const meetingHall = document.getElementById('meetingHall');
+                if (!audienceSection || !meetingHall) return;
                 
                 const rect = audienceSection.getBoundingClientRect();
                 const threshold = 20; // 边缘检测阈值
                 const expandAmount = 50; // 扩展量
+                const contractThreshold = 100; // 收缩检测阈值
                 
-                let needExpand = false;
+                // 获取会议厅的当前宽度作为最大限制
+                const meetingHallWidth = parseInt(meetingHall.style.width) || meetingHall.offsetWidth;
+                
+                let needResize = false;
                 let newWidth = audienceSection.offsetWidth;
                 let newHeight = audienceSection.offsetHeight;
                 
-                // 检查右边缘
+                // 检查右边缘 - 扩展（限制不能超过会议厅宽度）
                 if (e.clientX > rect.right - threshold) {
-                    newWidth += expandAmount;
-                    needExpand = true;
+                    const potentialWidth = newWidth + expandAmount;
+                    // 确保不超过会议厅宽度
+                    if (potentialWidth <= meetingHallWidth - 20) { // 80px 为内边距
+                        newWidth = potentialWidth;
+                        needResize = true;
+                    }
                 }
                 
-                // 检查下边缘
+                // 检查下边缘 - 扩展
                 if (e.clientY > rect.bottom - threshold) {
                     newHeight += expandAmount;
-                    needExpand = true;
+                    needResize = true;
                 }
                 
-                if (needExpand) {
-                    audienceSection.style.minWidth = newWidth + 'px';
+                // 检查右边缘 - 收缩
+                
+                
+                // 检查下边缘 - 收缩
+                if (e.clientY < rect.bottom - contractThreshold) {
+                    // 获取所有区域块的最下边缘
+                    const allBlocks = audienceSection.querySelectorAll('.audience-block');
+                    let maxBottom = 0;
+                    allBlocks.forEach(block => {
+                        const blockRect = block.getBoundingClientRect();
+                        maxBottom = Math.max(maxBottom, blockRect.bottom);
+                    });
+                    
+                    // 如果最下区域距离下边缘有足够的空间，可以收缩
+                    if (maxBottom < rect.bottom - contractThreshold && newHeight > 600) {
+                        newHeight = Math.max(600, maxBottom - rect.top + 50);
+                        needResize = true;
+                    }
+                }
+                
+                if (needResize) {
+                    // audienceSection.style.minWidth = newWidth + 'px';
                     audienceSection.style.minHeight = newHeight + 'px';
                     audienceSection.classList.add('expanding');
                     
@@ -1431,31 +1470,51 @@
             // 拖动过程中检查画布扩展
             function checkAndExpandCanvasWhileDragging(e, areaBlock) {
                 const audienceSection = document.querySelector('.audience-section');
-                if (!audienceSection || !areaBlock) return;
+                const meetingHall = document.getElementById('meetingHall');
+                if (!audienceSection || !areaBlock || !meetingHall) return;
                 
                 const blockRect = areaBlock.getBoundingClientRect();
                 const sectionRect = audienceSection.getBoundingClientRect();
                 const threshold = 20; // 边缘检测阈值
                 const expandAmount = 50; // 扩展量
+                const contractThreshold = 20; // 收缩检测阈值
                 
-                let needExpand = false;
-                let newWidth = audienceSection.offsetWidth;
+                // 获取会议厅的当前宽度作为最大限制
+                const meetingHallWidth = parseInt(meetingHall.style.width) || meetingHall.offsetWidth;
+                
+                let needResize = false;
                 let newHeight = audienceSection.offsetHeight;
                 
-                // 检查右边缘 - 区域块的右边缘接近画布右边缘时扩展
-                if (blockRect.right >= sectionRect.right - threshold) {
-                    newWidth += expandAmount;
-                    needExpand = true;
-                }
+                // 检查右边缘 - 区域块的右边缘接近画布右边缘时扩展（限制不能超过会议厅宽度）
+                
                 
                 // 检查下边缘 - 区域块的下边缘接近画布下边缘时扩展
                 if (blockRect.bottom >= sectionRect.bottom - threshold) {
                     newHeight += expandAmount;
-                    needExpand = true;
+                    needResize = true;
                 }
                 
-                if (needExpand) {
-                    audienceSection.style.minWidth = newWidth + 'px';
+                
+                
+                // 检查下边缘 - 收缩
+                if (blockRect.bottom < sectionRect.bottom - contractThreshold) {
+                    // 获取所有区域块的最下边缘
+                    const allBlocks = audienceSection.querySelectorAll('.audience-block');
+                    let maxBottom = 0;
+                    allBlocks.forEach(block => {
+                        const blockRect = block.getBoundingClientRect();
+                        maxBottom = Math.max(maxBottom, blockRect.bottom);
+                    });
+                    
+                    // 如果最下区域距离下边缘有足够的空间，可以收缩
+                if (maxBottom < sectionRect.bottom - contractThreshold && newHeight > 600) {
+                    newHeight = Math.max(600, maxBottom - sectionRect.top + 50);
+                    needResize = true;
+                }
+                }
+                
+                if (needResize) {
+                    // audienceSection.style.minWidth = newWidth + 'px';
                     audienceSection.style.minHeight = newHeight + 'px';
                     audienceSection.classList.add('expanding');
                     
@@ -1591,14 +1650,11 @@ function addAudienceArea() {
             
             // 获取观众席画布的当前尺寸
             // 优先使用样式设置的minWidth/minHeight，如果没有则使用offsetWidth/offsetHeight
-            const styleMinWidth = audienceSection.style.minWidth ? parseInt(audienceSection.style.minWidth) : 0;
             const styleMinHeight = audienceSection.style.minHeight ? parseInt(audienceSection.style.minHeight) : 0;
             
-            const audienceSectionWidth = Math.max(styleMinWidth, audienceSection.offsetWidth);
             const audienceSectionHeight = Math.max(styleMinHeight, audienceSection.offsetHeight);
             
             // 调试信息
-            console.log(`Audience section dimensions: styleMinWidth=${styleMinWidth}, offsetWidth=${audienceSection.offsetWidth}, finalWidth=${audienceSectionWidth}`);
             console.log(`Audience section dimensions: styleMinHeight=${styleMinHeight}, offsetHeight=${audienceSection.offsetHeight}, finalHeight=${audienceSectionHeight}`);
             
             // 计算舞台高度
@@ -1613,28 +1669,18 @@ function addAudienceArea() {
             totalHeight += audienceSectionHeight + seatingAreaPadding;
             
             // 计算最大宽度：直接基于观众席画布宽度
-            let maxWidth = audienceSectionWidth + 80; // 80px for padding
             
             
-            // 检查领导席宽度，但确保不小于观众席画布宽度
-            const leaderSection = seatingArea.querySelector('.leader-section');
-            if (leaderSection) {
-                const leaderRows = leaderSection.querySelectorAll('.seat-row');
-                leaderRows.forEach(row => {
-                    maxWidth = Math.max(maxWidth, row.scrollWidth + 80); // 80px for padding
-                });
-            }
+  
             
             // 应用计算出的尺寸 - 适配观众席画布尺寸
-            const finalWidth = Math.max(maxWidth, 800); // 最小800px
-            const finalHeight = Math.max(totalHeight + 60, 600); // 最小600px，包含内边距
+            const finalHeight = Math.max(totalHeight + 60, MIN_AUDIENCE_HEIGHT); // 使用静态变量，包含内边距
             
             // 只在尺寸有显著变化时才更新，避免频繁重排
-            const currentWidth = parseInt(meetingHall.style.width) || 0;
             const currentHeight = parseInt(meetingHall.style.minHeight) || 0;
             
-            if (Math.abs(currentWidth - finalWidth) > 50 || Math.abs(currentHeight - finalHeight) > 50) {
-                meetingHall.style.width = `${finalWidth}px`;
+            if ( Math.abs(currentHeight - finalHeight) > 50) {
+                
                 meetingHall.style.minHeight = `${finalHeight}px`;
                 console.log(`Meeting hall adjusted: width=${finalWidth}px, height=${finalHeight}px`);
             }

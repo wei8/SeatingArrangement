@@ -20,7 +20,7 @@
             margin: 0 auto;
         }
         .seating-area {
-            min-width: 800px;
+            min-width: 1500px;
             min-height: 600px;
             background: white;
             border: 2px solid #ddd;
@@ -119,6 +119,10 @@
     </div>
 
     <script>
+        // 静态变量定义
+        const MIN_AUDIENCE_WIDTH = 1500; // 观众席最小宽度
+        const MIN_AUDIENCE_HEIGHT = 600; // 观众席最小高度
+        
         let tables = [];
         let tableIdCounter = 1;
         
@@ -185,8 +189,8 @@
             
             if (tables.length === 0) {
                 log('没有餐桌，使用默认尺寸');
-                seatingArea.style.minWidth = '800px';
-                seatingArea.style.minHeight = '600px';
+                seatingArea.style.minWidth = MIN_AUDIENCE_WIDTH + 'px';
+                seatingArea.style.minHeight = MIN_AUDIENCE_HEIGHT + 'px';
                 return;
             }
             
@@ -214,8 +218,8 @@
             const neededWidth = contentWidth + margin * 2 + extraMargin;
             const neededHeight = contentHeight + margin * 2 + extraMargin;
             
-            const finalWidth = Math.max(800, neededWidth);
-            const finalHeight = Math.max(600, neededHeight);
+            const finalWidth = Math.max(MIN_AUDIENCE_WIDTH, neededWidth);
+            const finalHeight = Math.max(MIN_AUDIENCE_HEIGHT, neededHeight);
             
             log(`内容尺寸: ${contentWidth}x${contentHeight}`);
             log(`需要尺寸: ${neededWidth}x${neededHeight}`);

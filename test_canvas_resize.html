@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画布缩放测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        
+        .container {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+            overflow: auto;
+            border: 2px solid #ccc;
+        }
+        
+        .audience-section {
+            position: relative;
+            min-width: 1500px;
+            min-height: 600px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            transition: all 0.3s ease;
+        }
+        
+        .audience-section.expanding {
+            transition: all 0.3s ease;
+            box-shadow: 0 0 10px rgba(0,123,255,0.3);
+        }
+        
+        .audience-block {
+            position: absolute;
+            width: 150px;
+            height: 100px;
+            background: #007bff;
+            border: 2px solid #0056b3;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            cursor: move;
+            user-select: none;
+        }
+        
+        .audience-block:hover {
+            background: #0056b3;
+        }
+        
+        .info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            z-index: 1000;
+        }
+        
+        .controls {
+            margin-bottom: 20px;
+        }
+        
+        button {
+            padding: 8px 16px;
+            margin-right: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <button onclick="addTestBlock()">添加测试区域</button>
+        <button onclick="resetCanvas()">重置画布</button>
+    </div>
+    
+    <div class="info">
+        <div>画布宽度: <span id="canvasWidth">800</span>px</div>
+        <div>画布高度: <span id="canvasHeight">600</span>px</div>
+        <div>区域数量: <span id="blockCount">0</span></div>
+    </div>
+    
+    <div class="container">
+        <div class="audience-section" id="audienceSection"></div>
+    </div>
+
+    <script>
+        // 静态变量定义
+        const MIN_AUDIENCE_WIDTH = 1500; // 观众席最小宽度
+        const MIN_AUDIENCE_HEIGHT = 600; // 观众席最小高度
+        
+        let draggedElement = null;
+        let offset = { x: 0, y: 0 };
+        let blockCounter = 0;
+        
+        function updateInfo() {
+            const section = document.getElementById('audienceSection');
+            const blocks = section.querySelectorAll('.audience-block');
+            document.getElementById('canvasWidth').textContent = section.offsetWidth;
+            document.getElementById('canvasHeight').textContent = section.offsetHeight;
+            document.getElementById('blockCount').textContent = blocks.length;
+        }
+        
+        function addTestBlock() {
+            const section = document.getElementById('audienceSection');
+            const block = document.createElement('div');
+            block.className = 'audience-block';
+            block.textContent = `区域${blockCounter + 1}`;
+            block.style.left = (50 + blockCounter * 30) + 'px';
+            block.style.top = (50 + blockCounter * 30) + 'px';
+            block.dataset.blockId = blockCounter++;
+            
+            // 添加拖拽功能
+            block.addEventListener('mousedown', startDrag);
+            
+            section.appendChild(block);
+            updateInfo();
+        }
+        
+        function startDrag(e) {
+            draggedElement = e.target;
+            const rect = draggedElement.getBoundingClientRect();
+            offset.x = e.clientX - rect.left;
+            offset.y = e.clientY - rect.top;
+            
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', stopDrag);
+            
+            draggedElement.style.zIndex = '1000';
+        }
+        
+        function drag(e) {
+            if (!draggedElement) return;
+            
+            const section = document.getElementById('audienceSection');
+            const sectionRect = section.getBoundingClientRect();
+            
+            let newX = e.clientX - offset.x - sectionRect.left;
+            let newY = e.clientY - offset.y - sectionRect.top;
+            
+            // 限制在画布内
+            newX = Math.max(0, Math.min(newX, section.offsetWidth - draggedElement.offsetWidth));
+            newY = Math.max(0, Math.min(newY, section.offsetHeight - draggedElement.offsetHeight));
+            
+            draggedElement.style.left = newX + 'px';
+            draggedElement.style.top = newY + 'px';
+            
+            // 检查和调整画布大小
+            checkAndExpandCanvasWhileDragging(e, draggedElement);
+        }
+        
+        function stopDrag(e) {
+            if (!draggedElement) return;
+            
+            document.removeEventListener('mousemove', drag);
+            document.removeEventListener('mouseup', stopDrag);
+            
+            draggedElement.style.zIndex = '';
+            
+            // 检查最终画布大小
+            checkAndExpandCanvas(e);
+            
+            draggedElement = null;
+            updateInfo();
+        }
+        
+        function resetCanvas() {
+            const section = document.getElementById('audienceSection');
+            section.style.minWidth = MIN_AUDIENCE_WIDTH + 'px';
+            section.style.minHeight = MIN_AUDIENCE_HEIGHT + 'px';
+            section.innerHTML = '';
+            blockCounter = 0;
+            updateInfo();
+        }
+        
+        // 检查和扩展画布功能（拖动结束时调用）
+        function checkAndExpandCanvas(e) {
+            const audienceSection = document.querySelector('.audience-section');
+            if (!audienceSection) return;
+            
+            const rect = audienceSection.getBoundingClientRect();
+            const threshold = 20; // 边缘检测阈值
+            const expandAmount = 50; // 扩展量
+            const contractThreshold = 100; // 收缩检测阈值
+            
+            let needResize = false;
+            let newWidth = audienceSection.offsetWidth;
+            let newHeight = audienceSection.offsetHeight;
+            
+            // 检查右边缘 - 扩展
+            if (e.clientX > rect.right - threshold) {
+                newWidth += expandAmount;
+                needResize = true;
+            }
+            
+            // 检查下边缘 - 扩展
+            if (e.clientY > rect.bottom - threshold) {
+                newHeight += expandAmount;
+                needResize = true;
+            }
+            
+            // 检查右边缘 - 收缩
+            if (e.clientX < rect.right - contractThreshold) {
+                // 获取所有区域块的最右边缘
+                const allBlocks = audienceSection.querySelectorAll('.audience-block');
+                let maxRight = 0;
+                allBlocks.forEach(block => {
+                    const blockRect = block.getBoundingClientRect();
+                    maxRight = Math.max(maxRight, blockRect.right);
+                });
+                
+                // 如果最右区域距离右边缘有足够的空间，可以收缩
+                if (maxRight < rect.right - contractThreshold && newWidth > 800) {
+                    newWidth = Math.max(800, maxRight - rect.left + 50);
+                    needResize = true;
+                }
+            }
+            
+            // 检查下边缘 - 收缩
+            if (e.clientY < rect.bottom - contractThreshold) {
+                // 获取所有区域块的最下边缘
+                const allBlocks = audienceSection.querySelectorAll('.audience-block');
+                let maxBottom = 0;
+                allBlocks.forEach(block => {
+                    const blockRect = block.getBoundingClientRect();
+                    maxBottom = Math.max(maxBottom, blockRect.bottom);
+                });
+                
+                // 如果最下区域距离下边缘有足够的空间，可以收缩
+                if (maxBottom < rect.bottom - contractThreshold && newHeight > 600) {
+                    newHeight = Math.max(600, maxBottom - rect.top + 50);
+                    needResize = true;
+                }
+            }
+            
+            if (needResize) {
+                audienceSection.style.minWidth = newWidth + 'px';
+                audienceSection.style.minHeight = newHeight + 'px';
+                audienceSection.classList.add('expanding');
+                
+                setTimeout(() => {
+                    audienceSection.classList.remove('expanding');
+                    audienceSection.classList.add('expanded');
+                }, 300);
+            }
+        }
+        
+        // 拖动过程中检查画布扩展
+        function checkAndExpandCanvasWhileDragging(e, areaBlock) {
+            const audienceSection = document.querySelector('.audience-section');
+            if (!audienceSection || !areaBlock) return;
+            
+            const blockRect = areaBlock.getBoundingClientRect();
+            const sectionRect = audienceSection.getBoundingClientRect();
+            const threshold = 20; // 边缘检测阈值
+            const expandAmount = 50; // 扩展量
+            const contractThreshold = 100; // 收缩检测阈值
+            
+            let needResize = false;
+            let newWidth = audienceSection.offsetWidth;
+            let newHeight = audienceSection.offsetHeight;
+            
+            // 检查右边缘 - 区域块的右边缘接近画布右边缘时扩展
+            if (blockRect.right >= sectionRect.right - threshold) {
+                newWidth += expandAmount;
+                needResize = true;
+            }
+            
+            // 检查下边缘 - 区域块的下边缘接近画布下边缘时扩展
+            if (blockRect.bottom >= sectionRect.bottom - threshold) {
+                newHeight += expandAmount;
+                needResize = true;
+            }
+            
+            // 检查右边缘 - 收缩
+            if (blockRect.right < sectionRect.right - contractThreshold) {
+                // 获取所有区域块的最右边缘
+                const allBlocks = audienceSection.querySelectorAll('.audience-block');
+                let maxRight = 0;
+                allBlocks.forEach(block => {
+                    const blockRect = block.getBoundingClientRect();
+                    maxRight = Math.max(maxRight, blockRect.right);
+                });
+                
+                // 如果最右区域距离右边缘有足够的空间，可以收缩
+                if (maxRight < sectionRect.right - contractThreshold && newWidth > 800) {
+                    newWidth = Math.max(800, maxRight - sectionRect.left + 50);
+                    needResize = true;
+                }
+            }
+            
+            // 检查下边缘 - 收缩
+            if (blockRect.bottom < sectionRect.bottom - contractThreshold) {
+                // 获取所有区域块的最下边缘
+                const allBlocks = audienceSection.querySelectorAll('.audience-block');
+                let maxBottom = 0;
+                allBlocks.forEach(block => {
+                    const blockRect = block.getBoundingClientRect();
+                    maxBottom = Math.max(maxBottom, blockRect.bottom);
+                });
+                
+                // 如果最下区域距离下边缘有足够的空间，可以收缩
+                if (maxBottom < sectionRect.bottom - contractThreshold && newHeight > 600) {
+                    newHeight = Math.max(600, maxBottom - sectionRect.top + 50);
+                    needResize = true;
+                }
+            }
+            
+            if (needResize) {
+                audienceSection.style.minWidth = newWidth + 'px';
+                audienceSection.style.minHeight = newHeight + 'px';
+                audienceSection.classList.add('expanding');
+                
+                setTimeout(() => {
+                    audienceSection.classList.remove('expanding');
+                    audienceSection.classList.add('expanded');
+                }, 300);
+            }
+        }
+        
+        // 初始化
+        updateInfo();
+    </script>
+</body>
+</html>

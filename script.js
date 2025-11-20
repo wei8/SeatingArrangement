@@ -1,4 +1,8 @@
 // 全局模态框函数
+// 静态变量定义
+const MIN_AUDIENCE_WIDTH = 1500; // 观众席最小宽度
+const MIN_AUDIENCE_HEIGHT = 600; // 观众席最小高度
+
 function showModal(message, title = '提示', type = 'info') {
     // 创建模态框元素
     const modal = document.createElement('div');
@@ -222,10 +226,10 @@ class SeatingArrangement {
         
         if (this.tables.length === 0) {
             console.log('No tables exist, setting default size');
-            seatingArea.style.minWidth = '800px';
-            seatingArea.style.minHeight = '600px';
+            seatingArea.style.minWidth = MIN_AUDIENCE_WIDTH + 'px';
+            seatingArea.style.minHeight = MIN_AUDIENCE_HEIGHT + 'px';
             seatingArea.style.width = '800px';
-            seatingArea.style.height = '600px';
+            seatingArea.style.height = MIN_AUDIENCE_HEIGHT + 'px';
             console.log('Set default canvas size: 800x600px');
             return;
         }
@@ -263,8 +267,8 @@ class SeatingArrangement {
         const neededHeight = contentHeight + margin * 2 + extraMargin;
         
         // 设置最小尺寸
-        const minWidth = 800;
-        const minHeight = 600;
+        const minWidth = MIN_AUDIENCE_WIDTH;
+        const minHeight = MIN_AUDIENCE_HEIGHT;
         
         const finalWidth = Math.max(minWidth, neededWidth);
         const finalHeight = Math.max(minHeight, neededHeight);
