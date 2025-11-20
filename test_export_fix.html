@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>导出功能修复测试</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .meeting-hall {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            border: 2px solid #ccc;
+            margin: 20px auto;
+            background: white;
+        }
+        .audience-section {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            background: #f8f9fa;
+            border: 1px dashed #ddd;
+        }
+        .audience-block {
+            position: absolute;
+            background: white;
+            border: 2px solid #007bff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .area-seats-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 5px;
+            margin-top: 10px;
+        }
+        .seat {
+            width: 40px;
+            height: 40px;
+            background: #3498db;
+            color: white;
+            border: 2px solid #2980b9;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .seat:hover {
+            transform: scale(1.1);
+            background: #5dade2;
+        }
+        .seat.vip {
+            background: #e74c3c;
+            border-color: #c0392b;
+        }
+        .seat.occupied {
+            background: #27ae60;
+            border-color: #229954;
+        }
+        .seat.selected {
+            background: #f39c12;
+            border-color: #e67e22;
+            transform: scale(1.1);
+        }
+        .test-buttons {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .test-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 0 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s ease;
+        }
+        .test-btn:hover {
+            background: #0056b3;
+        }
+        .debug-info {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .debug-title {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 10px;
+        }
+        .position-info {
+            margin: 5px 0;
+            padding: 5px;
+            background: white;
+            border-left: 3px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>会议厅导出功能修复测试</h1>
+        <p>这个测试页面用于验证观众区座位在导出图片中的显示问题是否已修复。</p>
+        
+        <div class="meeting-hall" id="meetingHall">
+            <div class="audience-section">
+                <div class="audience-block" style="left: 50px; top: 50px;" data-area-id="0" data-name="观众区A">
+                    <h4>观众区A (8x4)</h4>
+                    <div class="area-seats-grid">
+                        <!-- 动态生成座位 -->
+                    </div>
+                </div>
+                
+                <div class="audience-block" style="left: 400px; top: 50px;" data-area-id="1" data-name="观众区B">
+                    <h4>观众区B (6x3)</h4>
+                    <div class="area-seats-grid">
+                        <!-- 动态生成座位 -->
+                    </div>
+                </div>
+                
+                <div class="audience-block" style="left: 200px; top: 250px;" data-area-id="2" data-name="VIP区">
+                    <h4>VIP区 (4x2)</h4>
+                    <div class="area-seats-grid">
+                        <!-- 动态生成座位 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-buttons">
+            <button class="test-btn" onclick="debugPositions()">调试位置信息</button>
+            <button class="test-btn" onclick="testExport()">测试导出功能</button>
+            <button class="test-btn" onclick="clearDebug()">清除调试信息</button>
+        </div>
+        
+        <div class="debug-info" id="debugInfo">
+            <div class="debug-title">调试信息：</div>
+        </div>
+    </div>
+
+    <script>
+        // 初始化座位
+        function initializeSeats() {
+            const blocks = document.querySelectorAll('.audience-block');
+            
+            blocks.forEach((block, blockIndex) => {
+                const grid = block.querySelector('.area-seats-grid');
+                const rows = blockIndex === 0 ? 4 : (blockIndex === 1 ? 3 : 2);
+                const cols = blockIndex === 0 ? 8 : (blockIndex === 1 ? 6 : 4);
+                
+                grid.innerHTML = '';
+                
+                for (let row = 0; row < rows; row++) {
+                    for (let col = 0; col < cols; col++) {
+                        const seat = document.createElement('div');
+                        seat.className = 'seat';
+                        seat.textContent = `${row + 1}-${col + 1}`;
+                        seat.dataset.type = 'audience';
+                        seat.dataset.area = block.dataset.name;
+                        seat.dataset.row = row + 1;
+                        seat.dataset.number = col + 1;
+                        seat.dataset.areaId = blockIndex;
+                        
+                        // 随机设置一些座位状态
+                        const random = Math.random();
+                        if (random < 0.2) {
+                            seat.classList.add('vip');
+                        } else if (random < 0.4) {
+                            seat.classList.add('occupied');
+                        }
+                        
+                        seat.onclick = function() {
+                            this.classList.toggle('selected');
+                        };
+                        
+                        grid.appendChild(seat);
+                    }
+                }
+            });
+        }
+        
+        // 调试位置信息
+        function debugPositions() {
+            const debugInfo = document.getElementById('debugInfo');
+            const meetingHall = document.getElementById('meetingHall');
+            const hallRect = meetingHall.getBoundingClientRect();
+            
+            debugInfo.innerHTML = '<div class="debug-title">调试位置信息：</div>';
+            
+            // 获取所有座位
+            const seats = document.querySelectorAll('.seat');
+            
+            seats.forEach((seat, index) => {
+                const seatRect = seat.getBoundingClientRect();
+                const parentBlock = seat.closest('.audience-block');
+                const blockRect = parentBlock.getBoundingClientRect();
+                
+                // 计算相对位置
+                const relativeToBlock = {
+                    left: seatRect.left - blockRect.left,
+                    top: seatRect.top - blockRect.top
+                };
+                
+                const blockRelativeToHall = {
+                    left: blockRect.left - hallRect.left,
+                    top: blockRect.top - hallRect.top
+                };
+                
+                const totalRelativeToHall = {
+                    left: blockRelativeToHall.left + relativeToBlock.left,
+                    top: blockRelativeToHall.top + relativeToBlock.top
+                };
+                
+                const info = document.createElement('div');
+                info.className = 'position-info';
+                info.innerHTML = `
+                    <strong>座位 ${seat.textContent} (${seat.dataset.area})</strong><br>
+                    绝对位置: left=${Math.round(seatRect.left)}, top=${Math.round(seatRect.top)}<br>
+                    相对于区块: left=${Math.round(relativeToBlock.left)}, top=${Math.round(relativeToBlock.top)}<br>
+                    区块相对于会议厅: left=${Math.round(blockRelativeToHall.left)}, top=${Math.round(blockRelativeToHall.top)}<br>
+                    总相对位置: left=${Math.round(totalRelativeToHall.left)}, top=${Math.round(totalRelativeToHall.top)}
+                `;
+                
+                debugInfo.appendChild(info);
+            });
+        }
+        
+        // 测试导出功能
+        function testExport() {
+            const meetingHall = document.getElementById('meetingHall');
+            const hallRect = meetingHall.getBoundingClientRect();
+            
+            // 创建临时画布
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // 设置画布尺寸
+            const padding = 60;
+            tempCanvas.width = hallRect.width + padding * 2;
+            tempCanvas.height = hallRect.height + padding * 2 + 120;
+            
+            // 绘制背景
+            tempCtx.fillStyle = '#f8f9fa';
+            tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            
+            // 绘制标题
+            tempCtx.fillStyle = '#2c3e50';
+            tempCtx.font = 'bold 24px Microsoft YaHei';
+            tempCtx.textAlign = 'center';
+            tempCtx.fillText('测试导出 - 观众区座位显示', tempCanvas.width / 2, 40);
+            
+            // 调整坐标系
+            tempCtx.translate(padding, 120);
+            
+            // 绘制会议厅背景
+            tempCtx.fillStyle = '#ffffff';
+            tempCtx.strokeStyle = '#e9ecef';
+            tempCtx.lineWidth = 2;
+            tempCtx.fillRect(0, 0, hallRect.width, hallRect.height);
+            tempCtx.strokeRect(0, 0, hallRect.width, hallRect.height);
+            
+            // 绘制所有座位
+            const seats = document.querySelectorAll('.seat');
+            seats.forEach(seat => {
+                const seatRect = seat.getBoundingClientRect();
+                const parentBlock = seat.closest('.audience-block');
+                const blockRect = parentBlock.getBoundingClientRect();
+                
+                // 使用修正后的位置计算
+                const relativeToBlock = {
+                    left: seatRect.left - blockRect.left,
+                    top: seatRect.top - blockRect.top
+                };
+                
+                const blockRelativeToHall = {
+                    left: blockRect.left - hallRect.left,
+                    top: blockRect.top - hallRect.top
+                };
+                
+                const x = blockRelativeToHall.left + relativeToBlock.left;
+                const y = blockRelativeToHall.top + relativeToBlock.top;
+                const width = seatRect.width;
+                const height = seatRect.height;
+                
+                // 设置座位颜色
+                let seatColor = '#3498db';
+                let borderColor = '#2980b9';
+                
+                if (seat.classList.contains('vip')) {
+                    seatColor = '#e74c3c';
+                    borderColor = '#c0392b';
+                } else if (seat.classList.contains('occupied')) {
+                    seatColor = '#27ae60';
+                    borderColor = '#229954';
+                } else if (seat.classList.contains('selected')) {
+                    seatColor = '#f39c12';
+                    borderColor = '#e67e22';
+                }
+                
+                // 绘制座位
+                tempCtx.fillStyle = seatColor;
+                tempCtx.strokeStyle = borderColor;
+                tempCtx.lineWidth = 2;
+                tempCtx.fillRect(x, y, width, height);
+                tempCtx.strokeRect(x, y, width, height);
+                
+                // 绘制座位文字
+                tempCtx.fillStyle = '#ffffff';
+                tempCtx.font = 'bold 12px Microsoft YaHei';
+                tempCtx.textAlign = 'center';
+                tempCtx.textBaseline = 'middle';
+                tempCtx.fillText(seat.textContent, x + width/2, y + height/2);
+            });
+            
+            // 导出图片
+            tempCanvas.toBlob((blob) => {
+                if (blob) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `测试导出_${new Date().toISOString().slice(0, 10)}.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    // 显示成功信息
+                    const debugInfo = document.getElementById('debugInfo');
+                    const successMsg = document.createElement('div');
+                    successMsg.style.background = '#d4edda';
+                    successMsg.style.border = '1px solid #c3e6cb';
+                    successMsg.style.color = '#155724';
+                    successMsg.style.padding = '10px';
+                    successMsg.style.marginTop = '10px';
+                    successMsg.style.borderRadius = '5px';
+                    successMsg.textContent = '✅ 导出成功！请检查下载的图片中观众区座位是否正确显示。';
+                    debugInfo.appendChild(successMsg);
+                }
+            }, 'image/png', 1.0);
+        }
+        
+        // 清除调试信息
+        function clearDebug() {
+            const debugInfo = document.getElementById('debugInfo');
+            debugInfo.innerHTML = '<div class="debug-title">调试信息：</div>';
+        }
+        
+        // 页面加载完成后初始化
+        window.onload = function() {
+            initializeSeats();
+            debugPositions();
+        };
+    </script>
+</body>
+</html>

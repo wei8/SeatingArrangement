@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>导出功能调试测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-container { 
+            border: 2px solid #ccc; 
+            padding: 20px; 
+            margin: 20px 0; 
+            position: relative;
+            background: #f5f5f5;
+        }
+        .audience-section {
+            min-height: 400px;
+            min-width: 800px;
+            background: white;
+            border: 1px solid #ddd;
+            padding: 20px;
+            position: relative;
+            margin: 20px 0;
+        }
+        .audience-block {
+            background: #e3f2fd;
+            border: 2px solid #2196f3;
+            border-radius: 8px;
+            padding: 15px;
+            position: absolute;
+            width: 250px;
+            min-height: 150px;
+        }
+        .seat {
+            display: inline-block;
+            width: 40px;
+            height: 30px;
+            background: #4caf50;
+            color: white;
+            text-align: center;
+            line-height: 30px;
+            margin: 2px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .area-seats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 4px;
+            margin-top: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px 5px;
+            cursor: pointer;
+            background: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover { background: #1976d2; }
+        .debug-info {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            margin: 20px 0;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h1>导出功能调试测试</h1>
+    
+    <div class="test-container" id="testContainer">
+        <h3>测试会议厅</h3>
+        <div id="meetingHall">
+            <div class="audience-section" id="audienceSection">
+                <div class="audience-block" data-area-id="0" style="left: 50px; top: 50px;">
+                    <h4>区域1</h4>
+                    <div class="area-seats-grid">
+                        <div class="seat" data-type="audience" data-area="区域1" data-row="1" data-number="1">1-1</div>
+                        <div class="seat" data-type="audience" data-area="区域1" data-row="1" data-number="2">1-2</div>
+                        <div class="seat" data-type="audience" data-area="区域1" data-row="1" data-number="3">1-3</div>
+                        <div class="seat" data-type="audience" data-area="区域1" data-row="1" data-number="4">1-4</div>
+                        <div class="seat" data-type="audience" data-area="区域1" data-row="2" data-number="1">2-1</div>
+                        <div class="seat" data-type="audience" data-area="区域1" data-row="2" data-number="2">2-2</div>
+                        <div class="seat" data-type="audience" data-area="区域1" data-row="2" data-number="3">2-3</div>
+                        <div class="seat" data-type="audience" data-area="区域1" data-row="2" data-number="4">2-4</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button onclick="debugPositions()">调试位置信息</button>
+    <button onclick="testExportLogic()">测试导出逻辑</button>
+    <button onclick="exportWithFix()">使用修复逻辑导出</button>
+
+    <div id="debugInfo" class="debug-info"></div>
+    <canvas id="debugCanvas" style="display: none;"></canvas>
+
+    <script>
+        function debugPositions() {
+            const debugInfo = document.getElementById('debugInfo');
+            const meetingHall = document.getElementById('meetingHall');
+            const audienceSection = document.getElementById('audienceSection');
+            const audienceBlocks = meetingHall.querySelectorAll('.audience-block');
+            const seats = meetingHall.querySelectorAll('.seat[data-type="audience"]');
+            
+            const hallRect = meetingHall.getBoundingClientRect();
+            const sectionRect = audienceSection.getBoundingClientRect();
+            
+            let info = `=== 调试信息 ===\n`;
+            info += `会议厅位置: left=${hallRect.left}, top=${hallRect.top}, width=${hallRect.width}, height=${hallRect.height}\n`;
+            info += `观众区位置: left=${sectionRect.left}, top=${sectionRect.top}, width=${sectionRect.width}, height=${sectionRect.height}\n\n`;
+            
+            audienceBlocks.forEach((block, index) => {
+                const blockRect = block.getBoundingClientRect();
+                const blockStyle = window.getComputedStyle(block);
+                
+                info += `观众区块 ${index}:\n`;
+                info += `  绝对位置: left=${blockRect.left}, top=${blockRect.top}\n`;
+                info += `  相对会议厅: left=${blockRect.left - hallRect.left}, top=${blockRect.top - hallRect.top}\n`;
+                info += `  CSS位置: left=${blockStyle.left}, top=${blockStyle.top}\n`;
+                info += `  定位方式: ${blockStyle.position}\n\n`;
+            });
+            
+            seats.forEach((seat, index) => {
+                const seatRect = seat.getBoundingClientRect();
+                const parentBlock = seat.closest('.audience-block');
+                const parentRect = parentBlock.getBoundingClientRect();
+                
+                info += `座位 ${index} (${seat.textContent}):\n`;
+                info += `  绝对位置: left=${seatRect.left}, top=${seatRect.top}\n`;
+                info += `  相对会议厅: left=${seatRect.left - hallRect.left}, top=${seatRect.top - hallRect.top}\n`;
+                info += `  相对父区块: left=${seatRect.left - parentRect.left}, top=${seatRect.top - parentRect.top}\n`;
+                info += `  父区块: ${parentBlock.dataset.areaId}\n\n`;
+            });
+            
+            debugInfo.textContent = info;
+        }
+
+        function testExportLogic() {
+            const debugInfo = document.getElementById('debugInfo');
+            const meetingHall = document.getElementById('meetingHall');
+            const hallRect = meetingHall.getBoundingClientRect();
+            const seats = meetingHall.querySelectorAll('.seat[data-type="audience"]');
+            
+            let info = `=== 当前导出逻辑测试 ===\n`;
+            
+            seats.forEach((seat, index) => {
+                const seatRect = seat.getBoundingClientRect();
+                const seatRelativeRect = {
+                    left: seatRect.left - hallRect.left,
+                    top: seatRect.top - hallRect.top,
+                    width: seatRect.width,
+                    height: seatRect.height
+                };
+                
+                info += `座位 ${index} (${seat.textContent}):\n`;
+                info += `  计算相对位置: left=${seatRelativeRect.left}, top=${seatRelativeRect.top}\n`;
+                info += `  尺寸: width=${seatRelativeRect.width}, height=${seatRelativeRect.height}\n\n`;
+            });
+            
+            debugInfo.textContent = info;
+        }
+
+        function exportWithFix() {
+            const canvas = document.getElementById('debugCanvas');
+            const ctx = canvas.getContext('2d');
+            const meetingHall = document.getElementById('meetingHall');
+            const hallRect = meetingHall.getBoundingClientRect();
+            const seats = meetingHall.querySelectorAll('.seat[data-type="audience"]');
+            
+            // 设置画布尺寸
+            canvas.width = hallRect.width + 100;
+            canvas.height = hallRect.height + 100;
+            canvas.style.display = 'block';
+            
+            // 绘制背景
+            ctx.fillStyle = '#f8f9fa';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制会议厅边框
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(50, 50, hallRect.width, hallRect.height);
+            
+            // 使用修复后的逻辑绘制座位
+            seats.forEach(seat => {
+                const seatRect = seat.getBoundingClientRect();
+                const parentBlock = seat.closest('.audience-block');
+                const blockRect = parentBlock.getBoundingClientRect();
+                const blockStyle = window.getComputedStyle(parentBlock);
+                
+                // 修复后的位置计算：考虑父元素的绝对定位
+                let x, y;
+                if (blockStyle.position === 'absolute') {
+                    // 如果父区块是绝对定位，使用CSS的left/top值
+                    const blockLeft = parseFloat(blockStyle.left) || 0;
+                    const blockTop = parseFloat(blockStyle.top) || 0;
+                    const seatInBlockLeft = seatRect.left - blockRect.left;
+                    const seatInBlockTop = seatRect.top - blockRect.top;
+                    
+                    x = 50 + blockLeft + seatInBlockLeft;
+                    y = 50 + blockTop + seatInBlockTop;
+                } else {
+                    // 默认逻辑
+                    x = 50 + (seatRect.left - hallRect.left);
+                    y = 50 + (seatRect.top - hallRect.top);
+                }
+                
+                const width = seatRect.width;
+                const height = seatRect.height;
+                
+                // 绘制座位
+                ctx.fillStyle = '#4caf50';
+                ctx.fillRect(x, y, width, height);
+                
+                ctx.fillStyle = 'white';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(seat.textContent, x + width/2, y + height/2);
+            });
+            
+            document.getElementById('debugInfo').textContent = '修复后的导出完成！查看上方的画布。';
+        }
+
+        // 页面加载完成后自动调试
+        window.onload = function() {
+            setTimeout(debugPositions, 500);
+        };
+    </script>
+</body>
+</html>

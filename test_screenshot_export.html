@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>截图导出功能测试</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-content {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            padding: 40px;
+            border-radius: 8px;
+            color: white;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn-original {
+            background: #3498db;
+            color: white;
+        }
+        .btn-screenshot {
+            background: #8e44ad;
+            color: white;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #ecf0f1;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .comparison-item {
+            text-align: center;
+        }
+        .comparison-item img {
+            max-width: 100%;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 会议排座系统 - 导出功能对比测试</h1>
+        <p>这个页面演示了两种导出方式的区别：</p>
+        <ul>
+            <li><strong>原始导出</strong>：使用Canvas手动绘制，精确但可能丢失样式</li>
+            <li><strong>截图导出</strong>：使用html2canvas，保留完整视觉效果</li>
+        </ul>
+    </div>
+
+    <div class="test-container" id="testContent">
+        <h2>🎯 测试内容区域</h2>
+        <div class="test-content">
+            <h3>会议厅座位布局</h3>
+            <p>这是一个包含渐变背景、圆角边框和阴影的测试区域</p>
+            <div style="display: flex; justify-content: center; gap: 10px; margin-top: 20px;">
+                <div style="background: rgba(255,255,255,0.2); padding: 10px; border-radius: 5px;">座位A1</div>
+                <div style="background: rgba(255,255,255,0.2); padding: 10px; border-radius: 5px;">座位A2</div>
+                <div style="background: rgba(255,255,255,0.2); padding: 10px; border-radius: 5px;">座位A3</div>
+            </div>
+        </div>
+        
+        <div class="buttons">
+            <button class="btn-original" onclick="testOriginalExport()">🎨 原始导出</button>
+            <button class="btn-screenshot" onclick="testScreenshotExport()">📸 截图导出</button>
+        </div>
+        
+        <div id="result" class="result" style="display: none;">
+            <h4>导出结果：</h4>
+            <p id="resultText"></p>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>📊 功能对比</h2>
+        <div class="comparison">
+            <div class="comparison-item">
+                <h4>原始导出特点</h4>
+                <ul style="text-align: left;">
+                    <li>✅ 文件体积小</li>
+                    <li>✅ 精确控制绘制</li>
+                    <li>❌ 样式可能丢失</li>
+                    <li>❌ 复杂效果难实现</li>
+                </ul>
+            </div>
+            <div class="comparison-item">
+                <h4>截图导出特点</h4>
+                <ul style="text-align: left;">
+                    <li>✅ 保留完整视觉效果</li>
+                    <li>✅ 支持CSS样式</li>
+                    <li>✅ 实现简单</li>
+                    <li>❌ 文件体积较大</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 模拟原始导出功能
+        function testOriginalExport() {
+            showResult('正在使用原始方式导出...', 'info');
+            
+            setTimeout(() => {
+                // 创建canvas并手动绘制
+                const canvas = document.createElement('canvas');
+                canvas.width = 800;
+                canvas.height = 400;
+                const ctx = canvas.getContext('2d');
+                
+                // 简单绘制背景
+                ctx.fillStyle = '#4ecdc4';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // 绘制文字
+                ctx.fillStyle = 'white';
+                ctx.font = '24px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('原始导出结果', canvas.width/2, 100);
+                ctx.fillText('(手动绘制版本)', canvas.width/2, 140);
+                
+                // 导出为图片
+                canvas.toBlob(function(blob) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'original_export.png';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    showResult('✅ 原始导出完成！文件已下载为 original_export.png', 'success');
+                });
+            }, 1000);
+        }
+
+        // 使用html2canvas进行截图导出
+        function testScreenshotExport() {
+            showResult('正在使用截图方式导出...', 'info');
+            
+            html2canvas(document.getElementById('testContent'), {
+                scale: 2, // 高DPI支持
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: null // 保持透明背景
+            }).then(canvas => {
+                // 导出为图片
+                canvas.toBlob(function(blob) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'screenshot_export.png';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    showResult('✅ 截图导出完成！文件已下载为 screenshot_export.png', 'success');
+                });
+            }).catch(error => {
+                showResult('❌ 截图导出失败：' + error.message, 'error');
+            });
+        }
+
+        function showResult(message, type) {
+            const resultDiv = document.getElementById('result');
+            const resultText = document.getElementById('resultText');
+            
+            resultText.textContent = message;
+            resultDiv.style.display = 'block';
+            resultDiv.style.borderLeftColor = type === 'success' ? '#27ae60' : 
+                                            type === 'error' ? '#e74c3c' : '#3498db';
+        }
+    </script>
+</body>
+</html>

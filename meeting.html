@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>银保会议排座系统</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -611,6 +612,70 @@
             transform: none;
         }
 
+        /* 参会人员列表样式 */
+        .attendee-item {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 0.8rem;
+            margin-bottom: 0.5rem;
+            cursor: move;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .attendee-item:hover {
+            background: #e9ecef;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .attendee-item.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+            z-index: 1000;
+        }
+
+        .attendee-item.assigned {
+            background: #d4edda;
+            border-color: #c3e6cb;
+        }
+
+        .attendee-name {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 0.3rem;
+        }
+
+        .attendee-info {
+            font-size: 0.8rem;
+            color: #666;
+            line-height: 1.3;
+        }
+
+        .attendee-seat {
+            font-size: 0.7rem;
+            color: #3498db;
+            margin-top: 0.3rem;
+            font-weight: 500;
+        }
+
+        /* 拖拽时的视觉反馈 */
+        .seat.drag-over {
+            background: #f39c12 !important;
+            border-color: #e67e22 !important;
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .seat.occupied {
+            background: #27ae60;
+            border-color: #229954;
+            position: relative;
+        }
+
+
+
         .status-bar {
             background: rgba(0,0,0,0.1);
             padding: 1rem;
@@ -722,9 +787,10 @@
                 <div class="header-title">💼 银保会议排座系统</div>
             </div>
             <div class="controls">
-                <button class="btn btn-primary" onclick="generateLayout()">生成布局</button>
-                <button class="btn btn-secondary" onclick="clearLayout()">清空布局</button>
-                <button class="btn btn-success" onclick="exportLayout()">导出布局</button>
+                <button class="btn btn-primary" onclick="generateLayout()">重置</button>
+                <!-- <button class="btn btn-secondary" onclick="clearLayout()">清空布局</button> -->
+                <!-- <button class="btn btn-success" onclick="exportLayout()">导出</button> -->
+                <button class="btn btn-success" onclick="exportScreenshot()" style="background: #8e44ad;">导出</button>
             </div>
         </header>
         <main>
@@ -761,6 +827,19 @@
                     <div>领导席：<span id="leaderSeats">0</span></div>
                     <div>观众席：<span id="audienceSeats">0</span></div>
                 </div>
+                
+                <h3>参会人员管理</h3>
+                <div class="form-group">
+                    <input type="file" id="attendeeFile" accept=".csv" style="display: none;" onchange="importAttendees()">
+                    <button class="btn btn-primary" onclick="document.getElementById('attendeeFile').click()" style="width: 100%;">📁 导入参会名单</button>
+                </div>
+                <div class="form-group">
+                    <button class="btn btn-success" onclick="exportAttendees()" style="width: 100%;">📊 导出参会名单</button>
+                </div>
+                
+                <div id="attendeeList" style="margin-top: 1rem; max-height: 300px; overflow-y: auto;">
+                    <p style="color: #666; font-size: 0.9rem; text-align: center; padding: 1rem;">暂无参会人员数据</p>
+                </div>
             </aside>
             <main class="main-area">
                 <div  id="meetingContent">
@@ -777,8 +856,6 @@
             </main>
         </main>
     </div>
-    <!-- 座位信息模态框 -->
-    <div id="seatModal" class="modal"></div>
         
     </style>
 </head>
@@ -857,6 +934,8 @@
         let isInitializing = true; // 添加初始化标志
         let currentEditingArea = null;
         let pendingDeleteAreaIndex = null;
+        let attendees = []; // 参会人员数据
+        let draggedAttendee = null; // 当前拖拽的参会人员
 
         // 初始化页面
         document.addEventListener('DOMContentLoaded', function() {
@@ -917,6 +996,9 @@
             
             // 生成观众席
             createAudienceSeats(seatingArea);
+            
+            // 为座位添加拖拽事件
+            addSeatDragEvents();
             
             updateStatistics();
         }
@@ -1622,6 +1704,9 @@ function addAudienceArea() {
             createAudienceArea(audienceSection, newAreaConfig, newIndex);
             updateStatistics();
             
+            // 为新创建的座位添加拖拽事件
+            addSeatDragEvents();
+            
             // 调整会议厅大小
             setTimeout(adjustMeetingHallSize, 100);
         }
@@ -1697,8 +1782,8 @@ function addAudienceArea() {
             seatElement.classList.add('selected');
             selectedSeat = seatElement;
             
-            // 显示座位信息
-            showSeatInfo(seatElement);
+            // 不再显示座位信息弹窗
+            // showSeatInfo(seatElement);
         }
 
         // 显示座位信息
@@ -1751,37 +1836,6 @@ function addAudienceArea() {
             document.getElementById('totalSeats').textContent = totalSeats;
             document.getElementById('leaderSeats').textContent = leaderSeats;
             document.getElementById('audienceSeats').textContent = audienceSeats;
-        }
-
-        // 导出布局
-        function exportLayout() {
-            const layoutData = {
-                settings: {
-                    leaderRows: document.getElementById('leaderRows').value,
-                    seatsPerRow: document.getElementById('seatsPerRow').value,
-                    audienceAreas: document.getElementById('audienceAreas').value,
-                    // seatsPerArea: document.getElementById('seatsPerArea').value,
-                    aisleWidth: document.getElementById('aisleWidth').value,
-                    aisleInterval: document.getElementById('aisleInterval').value
-                },
-                seats: seats.map(seat => ({
-                    type: seat.type,
-                    area: seat.area,
-                    row: seat.row,
-                    number: seat.number,
-                    occupied: seat.occupied
-                }))
-            };
-            
-            const dataStr = JSON.stringify(layoutData, null, 2);
-            const dataBlob = new Blob([dataStr], {type: 'application/json'});
-            
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(dataBlob);
-            link.download = 'meeting_layout.json';
-            link.click();
-            
-            showMessage('布局已导出！', 'success');
         }
 
         // 点击模态框外部关闭
@@ -1905,6 +1959,9 @@ function addAudienceArea() {
             // 更新统计信息
             updateStatistics();
             
+            // 为新创建的座位添加拖拽事件
+            addSeatDragEvents();
+            
             // 调整会议厅大小
             setTimeout(adjustMeetingHallSize, 100);
         }
@@ -1914,6 +1971,623 @@ function addAudienceArea() {
             const areaIndex = areaBlock.dataset.areaId;
             // 改为打开弹窗而不是进入编辑模式
             openAreaTitleModal(areaIndex);
+        }
+
+        // 显示消息提示
+        function showMessage(message, type = 'info') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message message-${type}`;
+            messageDiv.textContent = message;
+            messageDiv.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                padding: 1rem 1.5rem;
+                border-radius: 4px;
+                color: white;
+                font-size: 0.9rem;
+                z-index: 10000;
+                transition: all 0.3s ease;
+                max-width: 300px;
+                word-wrap: break-word;
+            `;
+            
+            // 设置不同消息类型的颜色
+            const colors = {
+                info: '#3498db',
+                success: '#27ae60',
+                warning: '#f39c12',
+                error: '#e74c3c'
+            };
+            messageDiv.style.backgroundColor = colors[type] || colors.info;
+            
+            document.body.appendChild(messageDiv);
+            
+            // 3秒后自动移除
+            setTimeout(() => {
+                messageDiv.style.opacity = '0';
+                messageDiv.style.transform = 'translateY(100%)';
+                setTimeout(() => {
+                    if (messageDiv.parentNode) {
+                        messageDiv.parentNode.removeChild(messageDiv);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // 关闭座位信息模态框
+        function closeSeatModal() {
+            document.getElementById('seatModal').style.display = 'none';
+        }
+
+        // 参会人员管理功能
+        
+        // CSV导入功能
+        function importAttendees() {
+            const fileInput = document.getElementById('attendeeFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showMessage('请选择CSV文件', 'warning');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const csv = e.target.result;
+                    const lines = csv.split('\n').filter(line => line.trim());
+                    
+                    if (lines.length < 2) {
+                        showMessage('CSV文件格式错误，至少需要包含标题行和一行数据', 'error');
+                        return;
+                    }
+                    
+                    // 解析标题行
+                    const headers = lines[0].split(',').map(h => h.trim().replace(/\r/g, ''));
+                    const nameIndex = headers.findIndex(h => h === '姓名' || h === 'name');
+                    const positionIndex = headers.findIndex(h => h === '职务' || h === 'position');
+                    const organizationIndex = headers.findIndex(h => h === '所属机构' || h === 'organization');
+                    const seatIndex = headers.findIndex(h => h === '座位' || h === 'seat');
+                    
+                    if (nameIndex === -1) {
+                        showMessage('CSV文件必须包含"姓名"或"name"列', 'error');
+                        return;
+                    }
+                    
+                    // 清空现有数据
+                    attendees = [];
+                    
+                    // 解析数据行
+                    for (let i = 1; i < lines.length; i++) {
+                        const values = lines[i].split(',').map(v => v.trim().replace(/\r/g, ''));
+                        if (values.length > 0 && values[0]) {
+                            const attendee = {
+                                id: `attendee_${i}`,
+                                name: values[nameIndex] || '',
+                                position: values[positionIndex] || '',
+                                organization: values[organizationIndex] || '',
+                                seat: values[seatIndex] || '',
+                                assignedSeat: null
+                            };
+                            attendees.push(attendee);
+                        }
+                    }
+                    
+                    if (attendees.length === 0) {
+                        showMessage('CSV文件中没有有效的参会人员数据', 'warning');
+                        return;
+                    }
+                    
+                    updateAttendeeList();
+                    showMessage(`成功导入 ${attendees.length} 名参会人员`, 'success');
+                    
+                } catch (error) {
+                    showMessage('CSV文件解析失败：' + error.message, 'error');
+                }
+            };
+            
+            reader.readAsText(file, 'UTF-8');
+            fileInput.value = ''; // 清空文件输入
+        }
+        
+        // CSV导出功能
+        function exportAttendees() {
+            if (attendees.length === 0) {
+                showMessage('没有参会人员数据可导出', 'warning');
+                return;
+            }
+            
+            // 创建CSV内容
+            let csv = '姓名,职务,所属机构,座位\n';
+            attendees.forEach(attendee => {
+                const seatInfo = attendee.assignedSeat ? 
+                    `${attendee.assignedSeat.type === 'leader' ? '领导席' : attendee.assignedSeat.area} ${attendee.assignedSeat.row}-${attendee.assignedSeat.number}` : 
+                    attendee.seat;
+                csv += `"${attendee.name}","${attendee.position}","${attendee.organization}","${seatInfo}"\n`;
+            });
+            
+            // 创建下载链接
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `参会名单_${new Date().toLocaleDateString()}.csv`;
+            link.click();
+            
+            showMessage('参会名单已导出', 'success');
+        }
+        
+        // 更新参会人员列表显示
+        function updateAttendeeList() {
+            const attendeeList = document.getElementById('attendeeList');
+            
+            if (attendees.length === 0) {
+                attendeeList.innerHTML = '<p style="color: #666; font-size: 0.9rem; text-align: center; padding: 1rem;">暂无参会人员数据</p>';
+                return;
+            }
+            
+            attendeeList.innerHTML = '';
+            attendees.forEach(attendee => {
+                const attendeeItem = document.createElement('div');
+                attendeeItem.className = 'attendee-item';
+                attendeeItem.dataset.attendeeId = attendee.id;
+                attendeeItem.draggable = true;
+                
+                if (attendee.assignedSeat) {
+                    attendeeItem.classList.add('assigned');
+                }
+                
+                attendeeItem.innerHTML = `
+                    <div class="attendee-name">${attendee.name}</div>
+                    <div class="attendee-info">${attendee.position || '暂无职务'}</div>
+                    <div class="attendee-info">${attendee.organization || '暂无机构'}</div>
+                    ${attendee.assignedSeat ? 
+                        `<div class="attendee-seat">已分配：${attendee.assignedSeat.type === 'leader' ? '领导席' : attendee.assignedSeat.area} ${attendee.assignedSeat.row}-${attendee.assignedSeat.number}</div>` :
+                        (attendee.seat ? `<div class="attendee-seat">预设：${attendee.seat}</div>` : '')
+                    }
+                `;
+                
+                // 添加拖拽事件
+                attendeeItem.addEventListener('dragstart', handleAttendeeDragStart);
+                attendeeItem.addEventListener('dragend', handleAttendeeDragEnd);
+                
+                attendeeList.appendChild(attendeeItem);
+            });
+        }
+        
+        // 拖拽开始
+        function handleAttendeeDragStart(e) {
+            draggedAttendee = attendees.find(a => a.id === e.target.dataset.attendeeId);
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', draggedAttendee.id);
+        }
+        
+        // 拖拽结束
+        function handleAttendeeDragEnd(e) {
+            e.target.classList.remove('dragging');
+            draggedAttendee = null;
+            
+            // 清除所有拖拽悬停效果
+            document.querySelectorAll('.seat.drag-over').forEach(seat => {
+                seat.classList.remove('drag-over');
+            });
+        }
+        
+        // 修改座位选择函数，添加拖拽支持
+        function selectSeat(seatElement) {
+            // 清除之前的选择
+            document.querySelectorAll('.seat.selected').forEach(seat => {
+                seat.classList.remove('selected');
+            });
+            
+            // 选择当前座位
+            seatElement.classList.add('selected');
+            selectedSeat = seatElement;
+            
+            // 显示座位信息
+            showSeatInfo(seatElement);
+        }
+        
+        // 修改显示座位信息函数
+        function showSeatInfo(seatElement) {
+            const type = seatElement.dataset.type;
+            const row = seatElement.dataset.row;
+            const number = seatElement.dataset.number;
+            const area = seatElement.dataset.area || '-';
+            
+            // 查找当前座位上的人员
+            const assignedAttendee = attendees.find(a => 
+                a.assignedSeat && 
+                a.assignedSeat.type === type && 
+                a.assignedSeat.row == row && 
+                a.assignedSeat.number == number &&
+                (type === 'leader' || a.assignedSeat.area === area)
+            );
+            
+            let info = `
+                <p><strong>座位类型：</strong>${type === 'leader' ? '领导席' : '观众席'}</p>
+                <p><strong>座位编号：</strong>${row}-${number}</p>
+            `;
+            
+            if (type === 'audience') {
+                info += `<p><strong>区域：</strong>${area}</p>`;
+            }
+            
+            info += `<p><strong>状态：</strong>${seatElement.classList.contains('occupied') ? '已占用' : '空闲'}</p>`;
+            
+            if (assignedAttendee) {
+                info += `
+                    <hr style="margin: 1rem 0;">
+                    <p><strong>参会人员：</strong>${assignedAttendee.name}</p>
+                    <p><strong>职务：</strong>${assignedAttendee.position || '暂无'}</p>
+                    <p><strong>机构：</strong>${assignedAttendee.organization || '暂无'}</p>
+                `;
+            }
+            
+            // 添加操作按钮
+            info += `
+                <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    ${assignedAttendee ? 
+                        `<button class="btn btn-warning" onclick="unassignAttendeeFromSeat('${assignedAttendee.id}')" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">移除人员</button>` :
+                        `<button class="btn btn-primary" onclick="assignAttendeeToSeat('${row}', '${number}', '${type}', '${area}')" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">分配人员</button>`
+                    }
+                    <button class="btn btn-secondary" onclick="closeSeatModal()" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">关闭</button>
+                </div>
+            `;
+            
+            document.getElementById('seatInfo').innerHTML = info;
+            document.getElementById('seatModal').style.display = 'block';
+        }
+        
+        // 为座位添加拖拽事件
+        function addSeatDragEvents() {
+            document.querySelectorAll('.seat').forEach(seat => {
+                seat.addEventListener('dragover', handleSeatDragOver);
+                seat.addEventListener('drop', handleSeatDrop);
+                seat.addEventListener('dragenter', handleSeatDragEnter);
+                seat.addEventListener('dragleave', handleSeatDragLeave);
+                
+                // 双击事件
+                seat.addEventListener('dblclick', handleSeatDoubleClick);
+            });
+        }
+        
+        // 拖拽悬停
+        function handleSeatDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        }
+        
+        // 拖拽进入
+        function handleSeatDragEnter(e) {
+            e.preventDefault();
+            if (draggedAttendee) {
+                e.target.classList.add('drag-over');
+            }
+        }
+        
+        // 拖拽离开
+        function handleSeatDragLeave(e) {
+            e.target.classList.remove('drag-over');
+        }
+        
+        // 拖拽放下
+        function handleSeatDrop(e) {
+            e.preventDefault();
+            e.target.classList.remove('drag-over');
+            
+            if (!draggedAttendee) return;
+            
+            const type = e.target.dataset.type;
+            const row = e.target.dataset.row;
+            const number = e.target.dataset.number;
+            const area = e.target.dataset.area || '';
+            
+            // 直接分配拖拽的人员到座位，不显示选择弹窗
+            directAssignAttendeeToSeat(draggedAttendee, row, number, type, area);
+        }
+        
+        // 直接分配参会人员到座位（拖拽时使用）
+        function directAssignAttendeeToSeat(attendee, row, number, type, area) {
+            // 如果拖拽的人员已经在其他座位上，先从原座位移除
+            if (attendee.assignedSeat) {
+                const { type: oldType, row: oldRow, number: oldNumber, area: oldArea } = attendee.assignedSeat;
+                const oldSeatElement = document.querySelector(`[data-type="${oldType}"][data-row="${oldRow}"][data-number="${oldNumber}"]${oldType === 'audience' ? `[data-area="${oldArea}"]` : ''}`);
+                if (oldSeatElement) {
+                    oldSeatElement.classList.remove('occupied');
+                }
+            }
+            
+            // 检查目标座位是否被占用，如果是，先移除原人员
+            const existingAttendee = attendees.find(a => 
+                a.assignedSeat && 
+                a.assignedSeat.type === type && 
+                a.assignedSeat.row == row && 
+                a.assignedSeat.number == number &&
+                (type === 'leader' || a.assignedSeat.area === area)
+            );
+            
+            if (existingAttendee) {
+                // 移除原座位上的人员
+                existingAttendee.assignedSeat = null;
+            }
+            
+            // 分配新座位
+            attendee.assignedSeat = { type, row: parseInt(row), number: parseInt(number), area };
+            
+            // 更新座位状态
+            const seatElement = document.querySelector(`[data-type="${type}"][data-row="${row}"][data-number="${number}"]${type === 'audience' ? `[data-area="${area}"]` : ''}`);
+            if (seatElement) {
+                seatElement.classList.add('occupied');
+                // 分配后显示姓名
+                seatElement.textContent = attendee.name;
+            }
+            
+            // 更新列表显示
+            updateAttendeeList();
+            
+            showMessage(`已将 ${attendee.name} 分配到座位 ${row}-${number}`, 'success');
+            
+            // 清除拖拽状态
+            draggedAttendee = null;
+        }
+        
+        // 双击座位分配人员
+        function handleSeatDoubleClick(e) {
+            // 清除之前的选择
+            document.querySelectorAll('.seat.selected').forEach(seat => {
+                seat.classList.remove('selected');
+            });
+            
+            // 选择当前座位（不显示弹窗）
+            e.target.classList.add('selected');
+            selectedSeat = e.target;
+            
+            // 如果座位是空闲的，直接打开分配对话框
+            const type = e.target.dataset.type;
+            const row = e.target.dataset.row;
+            const number = e.target.dataset.number;
+            const area = e.target.dataset.area || '';
+            
+            if (!e.target.classList.contains('occupied')) {
+                // 直接打开分配对话框
+                assignAttendeeToSeat(row, number, type, area);
+            }
+        }
+        
+        // 分配人员到座位
+        function assignAttendeeToSeat(row, number, type, area) {
+            // 查找未分配座位的人员
+            const unassignedAttendees = attendees.filter(a => !a.assignedSeat);
+            
+            if (unassignedAttendees.length === 0) {
+                showMessage('所有参会人员已分配座位', 'warning');
+                return;
+            }
+            
+            // 创建选择对话框
+            let options = '<option value="">请选择参会人员</option>';
+            unassignedAttendees.forEach(attendee => {
+                options += `<option value="${attendee.id}">${attendee.name} - ${attendee.position || '暂无职务'} - ${attendee.organization || '暂无机构'}</option>`;
+            });
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal attendee-assignment-modal';
+            modal.style.display = 'block';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <span class="close" onclick="closeAttendeeAssignmentModal(this)">&times;</span>
+                    <h3 style="margin-bottom: 1rem; color: #2c3e50;">分配参会人员</h3>
+                    <p><strong>座位信息：</strong>${type === 'leader' ? '领导席' : area} ${row}-${number}</p>
+                    <div class="form-group">
+                        <label>选择参会人员：</label>
+                        <select id="attendeeSelect" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 3px;">
+                            ${options}
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                        <button class="btn btn-secondary" onclick="closeAttendeeAssignmentModal(this)">取消</button>
+                        <button class="btn btn-primary" onclick="confirmAssignAttendee('${row}', '${number}', '${type}', '${area}')">确定</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // 点击外部关闭
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeAttendeeAssignmentModal(modal);
+                }
+            });
+        }
+        
+        // 确认分配人员
+        function confirmAssignAttendee(row, number, type, area) {
+            const select = document.getElementById('attendeeSelect');
+            const attendeeId = select.value;
+            
+            if (!attendeeId) {
+                showMessage('请选择参会人员', 'warning');
+                return;
+            }
+            
+            const attendee = attendees.find(a => a.id === attendeeId);
+            if (!attendee) return;
+            
+            // 检查座位是否已被占用
+            const existingAttendee = attendees.find(a => 
+                a.assignedSeat && 
+                a.assignedSeat.type === type && 
+                a.assignedSeat.row == row && 
+                a.assignedSeat.number == number &&
+                (type === 'leader' || a.assignedSeat.area === area)
+            );
+            
+            if (existingAttendee) {
+                showMessage('该座位已被占用', 'warning');
+                return;
+            }
+            
+            // 分配座位
+            attendee.assignedSeat = { type, row: parseInt(row), number: parseInt(number), area };
+            
+            // 更新座位状态
+            const seatElement = document.querySelector(`[data-type="${type}"][data-row="${row}"][data-number="${number}"]${type === 'audience' ? `[data-area="${area}"]` : ''}`);
+            if (seatElement) {
+                seatElement.classList.add('occupied');
+                // 分配后显示姓名
+                seatElement.textContent = attendee.name;
+            }
+            
+            // 更新列表显示
+            updateAttendeeList();
+            
+            // 关闭对话框
+            closeAttendeeAssignmentModal();
+            
+            showMessage(`已将 ${attendee.name} 分配到座位`, 'success');
+        }
+        
+        // 关闭参会人员分配模态框
+        function closeAttendeeAssignmentModal(element) {
+            const modal = element ? element.closest('.attendee-assignment-modal') : document.querySelector('.attendee-assignment-modal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+        
+        // 从座位移除人员
+        function unassignAttendeeFromSeat(attendeeId) {
+            const attendee = attendees.find(a => a.id === attendeeId);
+            if (!attendee || !attendee.assignedSeat) return;
+            
+            const { type, row, number, area } = attendee.assignedSeat;
+            
+            // 移除分配
+            attendee.assignedSeat = null;
+            
+            // 更新座位状态
+            const seatElement = document.querySelector(`[data-type="${type}"][data-row="${row}"][data-number="${number}"]${type === 'audience' ? `[data-area="${area}"]` : ''}`);
+            if (seatElement) {
+                seatElement.classList.remove('occupied');
+                // 移除后恢复座位编号显示
+                seatElement.textContent = `${row}-${number}`;
+            }
+            
+            // 更新列表显示
+            updateAttendeeList();
+            
+            showMessage(`已将 ${attendee.name} 从座位移除`, 'success');
+            
+            // 关闭座位信息模态框
+            closeSeatModal();
+        }
+
+        //截图导出功能 - 使用html2canvas实现真正的截图效果
+        function exportScreenshot() {
+            try {
+                // 获取会议厅元素
+                const meetingHall = document.getElementById('meetingHall');
+                if (!meetingHall) {
+                    showMessage('找不到会议厅元素！', 'error');
+                    return;
+                }
+
+                // 显示加载提示
+                showMessage('正在生成截图，请稍候...', 'info');
+
+                // 使用html2canvas进行截图
+                html2canvas(meetingHall, {
+                    backgroundColor: '#f8f9fa',
+                    scale: 2, // 高分辨率
+                    useCORS: true,
+                    allowTaint: true,
+                    width: meetingHall.scrollWidth,
+                    height: meetingHall.scrollHeight,
+                    scrollX: 0,
+                    scrollY: 0,
+                    x: 0,
+                    y: 0
+                }).then(canvas => {
+                    // 创建新的画布用于添加标题和边框
+                    const finalCanvas = document.createElement('canvas');
+                    const finalCtx = finalCanvas.getContext('2d');
+                    
+                    // 设置最终画布尺寸
+                    const padding = 40;
+                    const titleHeight = 80;
+                    finalCanvas.width = canvas.width + padding * 2;
+                    finalCanvas.height = canvas.height + padding * 2 + titleHeight;
+                    
+                    // 启用高DPI支持
+                    const devicePixelRatio = window.devicePixelRatio || 1;
+                    finalCanvas.width *= devicePixelRatio;
+                    finalCanvas.height *= devicePixelRatio;
+                    finalCtx.scale(devicePixelRatio, devicePixelRatio);
+                    
+                    // 绘制背景
+                    finalCtx.fillStyle = '#ffffff';
+                    finalCtx.fillRect(0, 0, finalCanvas.width / devicePixelRatio, finalCanvas.height / devicePixelRatio);
+                    
+                    // 绘制标题背景渐变
+                    const titleGradient = finalCtx.createLinearGradient(0, 0, 0, titleHeight);
+                    titleGradient.addColorStop(0, '#2c3e50');
+                    titleGradient.addColorStop(1, '#34495e');
+                    finalCtx.fillStyle = titleGradient;
+                    finalCtx.fillRect(0, 0, finalCanvas.width / devicePixelRatio, titleHeight);
+                    
+                    // 绘制标题文字
+                    finalCtx.fillStyle = '#ffffff';
+                    finalCtx.font = 'bold 24px Microsoft YaHei, Arial, sans-serif';
+                    finalCtx.textAlign = 'center';
+                    finalCtx.textBaseline = 'middle';
+                    finalCtx.fillText('会议厅座位安排截图', finalCanvas.width / (2 * devicePixelRatio), titleHeight / 2);
+                    
+                    // 绘制副标题（日期）
+                    finalCtx.fillStyle = '#ecf0f1';
+                    finalCtx.font = '16px Microsoft YaHei, Arial, sans-serif';
+                    const today = new Date().toLocaleDateString('zh-CN') + ' ' + new Date().toLocaleTimeString('zh-CN');
+                    finalCtx.fillText(`截图时间：${today}`, finalCanvas.width / (2 * devicePixelRatio), titleHeight - 20);
+                    
+                    // 绘制截图内容
+                    finalCtx.drawImage(canvas, padding, titleHeight + padding);
+                    
+                    // 添加边框
+                    finalCtx.strokeStyle = '#dee2e6';
+                    finalCtx.lineWidth = 1;
+                    finalCtx.strokeRect(padding, titleHeight + padding, canvas.width, canvas.height);
+                    
+                    // 导出为图片
+                    finalCanvas.toBlob((blob) => {
+                        if (blob) {
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `会议厅截图_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                            
+                            // 清理画布
+                            finalCanvas.remove();
+                            canvas.remove();
+                            
+                            showMessage('截图导出成功！', 'success');
+                        }
+                    }, 'image/png', 0.95);
+                    
+                }).catch(error => {
+                    console.error('截图失败:', error);
+                    showMessage('截图导出失败：' + error.message, 'error');
+                });
+                
+            } catch (error) {
+                console.error('截图导出失败:', error);
+                showMessage('截图导出失败：' + error.message, 'error');
+            }
         }
     </script>
 
@@ -1942,16 +2616,25 @@ function addAudienceArea() {
     </div>
 
     <!-- 删除确认模态框 -->
-    <div id="deleteConfirmModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeDeleteConfirmModal()">&times;</span>
-            <h3>确认删除</h3>
-            <p id="deleteConfirmMessage">确定要删除这个区域吗？此操作不可撤销。</p>
-            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
-                <button class="btn btn-secondary" onclick="closeDeleteConfirmModal()">取消</button>
-                <button class="btn btn-danger" onclick="confirmDeleteArea()">删除</button>
+        <div id="deleteConfirmModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeDeleteConfirmModal()">&times;</span>
+                <h3>确认删除</h3>
+                <p>确定要删除这个区域吗？此操作不可撤销。</p>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                    <button class="btn btn-secondary" onclick="closeDeleteConfirmModal()">取消</button>
+                    <button class="btn btn-danger" onclick="confirmDeleteArea()">删除</button>
+                </div>
             </div>
         </div>
-    </div>
+
+        <!-- 座位信息模态框 -->
+        <div id="seatModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeSeatModal()">&times;</span>
+                <h3>座位信息</h3>
+                <div id="seatInfo"></div>
+            </div>
+        </div>
 </body>
 </html>
