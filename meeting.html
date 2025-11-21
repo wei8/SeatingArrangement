@@ -142,6 +142,254 @@
             border: 1px solid #ddd;
             border-radius: 3px;
             font-size: 0.9rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+        
+        /* 添加参会人员表单样式 */
+        .add-attendee-form {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: box-shadow 0.3s ease;
+        }
+        
+        .add-attendee-form:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        .add-attendee-form h4 {
+            margin-bottom: 0.8rem;
+            font-size: 1rem;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        
+        /* 参会人员项样式 */
+        .attendee-item {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            padding: 0.8rem;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+            cursor: grab;
+        }
+        
+        .attendee-item:hover {
+            border-color: #3498db;
+            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1);
+        }
+        
+        .attendee-item.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+        
+        .attendee-item.assigned {
+            background: #e8f4fd;
+            border-color: #3498db;
+        }
+        
+        .attendee-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .attendee-name {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 0.95rem;
+        }
+        
+        .attendee-info {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            margin-bottom: 0.25rem;
+        }
+        
+        .attendee-seat {
+            font-size: 0.8rem;
+            color: #3498db;
+            font-weight: 500;
+            margin-top: 0.3rem;
+            padding-top: 0.3rem;
+            border-top: 1px solid #f0f0f0;
+        }
+        
+        /* 删除按钮样式 */
+        .delete-attendee-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 0.2rem 0.5rem;
+            cursor: pointer;
+            font-size: 0.8rem;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+        }
+        
+        .attendee-item:hover .delete-attendee-btn {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .delete-attendee-btn:hover {
+            background: #c0392b;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .delete-attendee-btn:active {
+            transform: translateY(0);
+        }
+        
+        /* 参会人员编辑窗口样式 */
+        .attendee-edit-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.2s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .attendee-edit-modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            animation: slideIn 0.2s ease-out;
+            transform: translateY(0);
+        }
+        
+        @keyframes slideIn {
+            from { 
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e9ecef;
+            background: #f8f9fa;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.25rem;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        
+        .modal-body {
+            padding: 1.5rem;
+        }
+        
+        .modal-form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .modal-form-group:last-of-type {
+            margin-bottom: 1.5rem;
+        }
+        
+        .modal-form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        .modal-form-group input {
+            width: 100%;
+            padding: 0.6rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .modal-form-group input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        
+        .modal-footer {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            padding: 0 1.5rem 1.5rem;
+        }
+        
+        .btn-cancel {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            background: white;
+            color: #495057;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-cancel:hover {
+            background: #f8f9fa;
+            border-color: #adb5bd;
+        }
+        
+        .btn-save {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 3px;
+            background: #3498db;
+            color: white;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-save:hover {
+            background: #2980b9;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn-save:active {
+            transform: translateY(0);
         }
 
         .main-area {
@@ -835,6 +1083,14 @@
                 </div>
                 <div class="form-group">
                     <button class="btn btn-success" onclick="exportAttendees()" style="width: 100%;">📊 导出参会名单</button>
+                </div>
+                
+                <div class="form-group add-attendee-form">
+                    <h4>➕ 添加单个参会人员</h4>
+                    <input type="text" id="attendeeName" placeholder="姓名" required style="margin-bottom: 0.5rem;">
+                    <input type="text" id="attendeePosition" placeholder="职务（可选）" style="margin-bottom: 0.5rem;">
+                    <input type="text" id="attendeeOrganization" placeholder="所属机构（可选）" style="margin-bottom: 0.5rem;">
+                    <button class="btn btn-primary" onclick="addSingleAttendee()" style="width: 100%;">添加参会人员</button>
                 </div>
                 
                 <div id="attendeeList" style="margin-top: 1rem; max-height: 300px; overflow-y: auto;">
@@ -2022,6 +2278,45 @@ function addAudienceArea() {
 
         // 参会人员管理功能
         
+        // 单个添加参会人员功能
+        function addSingleAttendee() {
+            const name = document.getElementById('attendeeName').value.trim();
+            const position = document.getElementById('attendeePosition').value.trim();
+            const organization = document.getElementById('attendeeOrganization').value.trim();
+            
+            // 验证姓名是否填写
+            if (!name) {
+                showMessage('请输入参会人员姓名', 'warning');
+                document.getElementById('attendeeName').focus();
+                return;
+            }
+            
+            // 创建新的参会人员对象
+            const newAttendee = {
+                id: `attendee_${Date.now()}`, // 使用时间戳确保ID唯一
+                name: name,
+                position: position || '',
+                organization: organization || '',
+                seat: '',
+                assignedSeat: null
+            };
+            
+            // 添加到参会人员数组
+            attendees.push(newAttendee);
+            
+            // 更新参会人员列表显示
+            updateAttendeeList();
+            
+            // 显示成功消息
+            showMessage(`成功添加参会人员：${name}`, 'success');
+            
+            // 清空表单
+            document.getElementById('attendeeName').value = '';
+            document.getElementById('attendeePosition').value = '';
+            document.getElementById('attendeeOrganization').value = '';
+            document.getElementById('attendeeName').focus();
+        }
+        
         // CSV导入功能
         function importAttendees() {
             const fileInput = document.getElementById('attendeeFile');
@@ -2138,7 +2433,10 @@ function addAudienceArea() {
                 }
                 
                 attendeeItem.innerHTML = `
-                    <div class="attendee-name">${attendee.name}</div>
+                    <div class="attendee-header">
+                        <div class="attendee-name">${attendee.name}</div>
+                        <button class="delete-attendee-btn" onclick="deleteAttendee('${attendee.id}')">删除</button>
+                    </div>
                     <div class="attendee-info">${attendee.position || '暂无职务'}</div>
                     <div class="attendee-info">${attendee.organization || '暂无机构'}</div>
                     ${attendee.assignedSeat ? 
@@ -2151,9 +2449,133 @@ function addAudienceArea() {
                 attendeeItem.addEventListener('dragstart', handleAttendeeDragStart);
                 attendeeItem.addEventListener('dragend', handleAttendeeDragEnd);
                 
+                // 添加双击事件，打开编辑窗口
+                attendeeItem.addEventListener('dblclick', function() {
+                    const attendeeId = this.dataset.attendeeId;
+                    openAttendeeEditModal(attendeeId);
+                });
+                
                 attendeeList.appendChild(attendeeItem);
             });
         }
+        
+        // 删除参会人员
+        function deleteAttendee(attendeeId) {
+            // 找到要删除的参会人员
+            const attendeeIndex = attendees.findIndex(a => a.id === attendeeId);
+            if (attendeeIndex === -1) return;
+            
+            const attendee = attendees[attendeeIndex];
+            const attendeeName = attendee.name;
+            
+            // 如果参会人员已分配座位，先释放座位
+            if (attendee.assignedSeat) {
+                const { type, row, number, area } = attendee.assignedSeat;
+                const seatElement = document.querySelector(`[data-type="${type}"][data-row="${row}"][data-number="${number}"]${type === 'audience' ? `[data-area="${area}"]` : ''}`);
+                if (seatElement) {
+                    seatElement.classList.remove('occupied');
+                    seatElement.textContent = `${row}-${number}`;
+                }
+            }
+            
+            // 从数组中删除参会人员
+            attendees.splice(attendeeIndex, 1);
+            
+            // 更新参会人员列表
+            updateAttendeeList();
+            
+            // 显示成功消息
+            showMessage(`成功删除参会人员：${attendeeName}`, 'success');
+        }
+        
+        // 打开参会人员编辑窗口
+        function openAttendeeEditModal(attendeeId) {
+            const attendee = attendees.find(a => a.id === attendeeId);
+            if (!attendee) return;
+            
+            // 填充表单数据
+            document.getElementById('editAttendeeId').value = attendee.id;
+            document.getElementById('editAttendeeName').value = attendee.name;
+            document.getElementById('editAttendeePosition').value = attendee.position || '';
+            document.getElementById('editAttendeeOrganization').value = attendee.organization || '';
+            
+            // 显示编辑窗口
+            const modal = document.getElementById('attendeeEditModal');
+            modal.style.display = 'flex';
+            
+            // 聚焦到姓名输入框
+            document.getElementById('editAttendeeName').focus();
+        }
+        
+        // 关闭参会人员编辑窗口
+        function closeAttendeeEditModal() {
+            document.getElementById('attendeeEditModal').style.display = 'none';
+        }
+        
+        // 保存参会人员编辑
+        function saveAttendeeEdit() {
+            const attendeeId = document.getElementById('editAttendeeId').value;
+            const name = document.getElementById('editAttendeeName').value.trim();
+            const position = document.getElementById('editAttendeePosition').value.trim();
+            const organization = document.getElementById('editAttendeeOrganization').value.trim();
+            
+            // 验证姓名是否填写
+            if (!name) {
+                showMessage('请输入参会人员姓名', 'warning');
+                document.getElementById('editAttendeeName').focus();
+                return;
+            }
+            
+            // 找到要编辑的参会人员
+            const attendeeIndex = attendees.findIndex(a => a.id === attendeeId);
+            if (attendeeIndex === -1) {
+                showMessage('未找到该参会人员', 'error');
+                return;
+            }
+            
+            // 更新参会人员信息
+            attendees[attendeeIndex].name = name;
+            attendees[attendeeIndex].position = position || '';
+            attendees[attendeeIndex].organization = organization || '';
+            
+            // 如果已分配座位，更新座位上的显示
+            if (attendees[attendeeIndex].assignedSeat) {
+                const { type, row, number, area } = attendees[attendeeIndex].assignedSeat;
+                const seatElement = document.querySelector(`[data-type="${type}"][data-row="${row}"][data-number="${number}"]${type === 'audience' ? `[data-area="${area}"]` : ''}`);
+                if (seatElement) {
+                    seatElement.textContent = name;
+                }
+            }
+            
+            // 更新参会人员列表
+            updateAttendeeList();
+            
+            // 关闭编辑窗口
+            closeAttendeeEditModal();
+            
+            // 显示成功消息
+            showMessage('参会人员信息已成功更新', 'success');
+        }
+        
+        // 为编辑窗口按钮添加事件监听
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('cancelEditBtn').addEventListener('click', closeAttendeeEditModal);
+            document.getElementById('saveEditBtn').addEventListener('click', saveAttendeeEdit);
+            
+            // 点击模态窗口外部关闭窗口
+            document.getElementById('attendeeEditModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeAttendeeEditModal();
+                }
+            });
+            
+            // ESC键关闭窗口
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && document.getElementById('attendeeEditModal').style.display === 'flex') {
+                    closeAttendeeEditModal();
+                }
+            });
+        });
         
         // 拖拽开始
         function handleAttendeeDragStart(e) {
@@ -2636,5 +3058,32 @@ function addAudienceArea() {
                 <div id="seatInfo"></div>
             </div>
         </div>
-</body>
+<!-- 参会人员编辑模态窗口 -->
+        <div id="attendeeEditModal" class="attendee-edit-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>编辑参会人员信息</h3>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editAttendeeId">
+                    <div class="modal-form-group">
+                        <label for="editAttendeeName">姓名</label>
+                        <input type="text" id="editAttendeeName" required>
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editAttendeePosition">职务</label>
+                        <input type="text" id="editAttendeePosition">
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editAttendeeOrganization">所属机构</label>
+                        <input type="text" id="editAttendeeOrganization">
+                    </div>
+                    <div class="modal-footer">
+                        <button id="cancelEditBtn" class="btn-cancel">取消</button>
+                        <button id="saveEditBtn" class="btn-save">保存修改</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
 </html>
