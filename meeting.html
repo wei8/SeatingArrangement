@@ -1330,6 +1330,8 @@
                             seat.dataset.row = row + 1;
                             seat.dataset.number = seatCounter + 1;
                             seat.dataset.type = 'leader';
+                            seat.dataset.areaId = '0';
+                            seat.dataset.area = 'vip';
                             seat.onclick = () => selectSeat(seat);
                             
                             seats.push({
@@ -1337,6 +1339,8 @@
                                 row: row + 1,
                                 number: seatCounter + 1,
                                 type: 'leader',
+                                areaId: 0,
+                                area: 'vip',
                                 occupied: false
                             });
                             
@@ -1400,7 +1404,7 @@
         function createAudienceArea(container, areaConfig, index) {
             const areaBlock = document.createElement('div');
             areaBlock.className = 'audience-block';
-            areaBlock.dataset.areaId = index;
+            areaBlock.dataset.areaId = index + 1; // 观众区areaId从1开始
             areaBlock.dataset.rows = areaConfig.rows;
             areaBlock.dataset.cols = areaConfig.cols;
             areaBlock.dataset.name = areaConfig.name;
@@ -1416,8 +1420,8 @@
             const editControls = document.createElement('div');
             editControls.className = 'area-edit-controls';
             editControls.innerHTML = `
-                <button class="area-edit-btn edit" onclick="openAreaTitleModal(${index})" title="编辑区域">编辑</button>
-                <button class="area-edit-btn delete" onclick="deleteArea(${index})" title="删除区域">删除</button>
+                <button class="area-edit-btn edit" onclick="openAreaTitleModal(${index + 1})" title="编辑区域">编辑</button>
+                <button class="area-edit-btn delete" onclick="deleteArea(${index + 1})" title="删除区域">删除</button>
             `;
             areaBlock.appendChild(editControls);
             
@@ -1470,13 +1474,13 @@
                     seatElement.dataset.row = row + 1;
                     seatElement.dataset.number = col + 1;
                     seatElement.dataset.type = 'audience';
-                    seatElement.dataset.areaId = index;
+                    seatElement.dataset.areaId = index + 1;
                     seatElement.onclick = () => selectSeat(seatElement);
                     
                     seats.push({
                         element: seatElement,
                         area: areaConfig.name,
-                        areaId: index,
+                        areaId: index + 1,
                         row: row + 1,
                         number: col + 1,
                         type: 'audience',
@@ -1910,7 +1914,7 @@
         function deleteArea(areaIndex) {
             pendingDeleteAreaIndex = areaIndex;
             const areaBlock = document.querySelector(`[data-area-id="${areaIndex}"]`);
-            const areaName = areaBlock.dataset.name || `区域${areaIndex + 1}`;
+            const areaName = areaBlock.dataset.name || `区域${areaIndex}`;
             document.getElementById('deleteConfirmMessage').textContent = `确定要删除"${areaName}"吗？此操作不可撤销。`;
             document.getElementById('deleteConfirmModal').style.display = 'block';
         }
@@ -1921,7 +1925,7 @@
                 const areaBlock = document.querySelector(`[data-area-id="${pendingDeleteAreaIndex}"]`);
                 
                 // 清除该区域的座位数据
-                seats = seats.filter(seat => seat.areaId !== pendingDeleteAreaIndex);
+                seats = seats.filter(seat => seat.areaId !== parseInt(pendingDeleteAreaIndex));
                 
                 // 删除区域元素
                 areaBlock.remove();
@@ -2023,7 +2027,7 @@ function addAudienceArea() {
             if ( Math.abs(currentHeight - finalHeight) > 50) {
                 
                 meetingHall.style.minHeight = `${finalHeight}px`;
-                console.log(`Meeting hall adjusted: width=${finalWidth}px, height=${finalHeight}px`);
+                console.log(`Meeting hall adjusted: height=${finalHeight}px`);
             }
         }
 
@@ -2148,7 +2152,7 @@ function addAudienceArea() {
             if (!areaIndex && areaIndex !== '0') return;
             
             const areaBlock = document.querySelector(`[data-area-id="${areaIndex}"]`);
-            const newName = document.getElementById('modalAreaName').value.trim() || `区域${parseInt(areaIndex) + 1}`;
+            const newName = document.getElementById('modalAreaName').value.trim() || `区域${parseInt(areaIndex)}`;
             const newRows = parseInt(document.getElementById('modalAreaRows').value) || 4;
             const newCols = parseInt(document.getElementById('modalAreaCols').value) || 8;
             
