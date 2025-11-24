@@ -1034,7 +1034,7 @@
                 <div class="header-title">💼 银保会议排座系统</div>
             </div>
             <div class="controls">
-                <button class="btn btn-primary" onclick="generateLayout()">重置</button>
+                <button class="btn btn-primary" onclick="resetMeetingSettings()">重置</button>
                 <!-- <button class="btn btn-secondary" onclick="clearLayout()">清空布局</button> -->
                 <!-- <button class="btn btn-success" onclick="exportLayout()">导出</button> -->
                 <button class="btn btn-success" onclick="exportScreenshot()" style="background: #8e44ad;">导出座位图</button>
@@ -1075,18 +1075,7 @@
                     <div>观众席：<span id="audienceSeats">0</span></div>
                 </div>
                 
-                <!-- 缓存状态指示器 -->
-                <div id="cacheStatusIndicator" class="cache-status" style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 0.8rem; margin-bottom: 1rem;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                        <div style="font-weight: 600; color: #2c3e50;">💾 缓存状态</div>
-                        <div id="cacheStatus" style="font-size: 0.85rem; color: #95a5a6;">未初始化</div>
-                    </div>
-                    <div id="lastSaveInfo" style="font-size: 0.8rem; color: #7f8c8d;">上次保存时间：-</div>
-                    <div style="margin-top: 0.8rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                        <button id="forceSaveBtn" class="btn btn-secondary" onclick="forceSaveCache()" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">强制保存</button>
-                        <button id="clearCacheBtn" class="btn btn-warning" onclick="clearCacheConfirm()" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">清除缓存</button>
-                    </div>
-                </div>
+                <!-- 缓存状态展示已移除，改为后台自动保存 -->
                 
                 <h3>参会人员管理</h3>
                 <div class="form-group">
@@ -1279,7 +1268,89 @@
         });
 
         // 生成会议布局
-        function generateLayout() {
+        // 重置会议设置为默认值
+function resetMeetingSettings() {
+    // 显示自定义模态弹窗
+    const resetModal = document.getElementById('resetConfirmModal');
+    resetModal.style.display = 'flex';
+}
+
+// 关闭重置确认模态弹窗
+function closeResetConfirmModal() {
+    const resetModal = document.getElementById('resetConfirmModal');
+    resetModal.style.display = 'none';
+}
+
+// 点击模态框外部关闭
+window.addEventListener('click', function(event) {
+    const resetModal = document.getElementById('resetConfirmModal');
+    if (event.target === resetModal) {
+        closeResetConfirmModal();
+    }
+});
+
+// ESC键关闭模态框
+document.addEventListener('keydown', function(event) {
+    const resetModal = document.getElementById('resetConfirmModal');
+    if (event.key === 'Escape' && resetModal.style.display === 'flex') {
+        closeResetConfirmModal();
+    }
+});
+
+// 执行重置操作
+function performReset() {
+    // 先关闭模态弹窗
+    closeResetConfirmModal();
+    
+    // 恢复会议设置默认值
+    document.getElementById('leaderRows').value = '2';
+    document.getElementById('seatsPerRow').value = '8,10,10';
+    document.getElementById('aisleInterval').value = '6';
+    
+    // 清空布局
+    clearLayout();
+    
+    // 清除参会人员名单
+    clearAttendeesList();
+    
+    // 重新生成默认布局
+    generateLayout();
+    
+    // 清除页面缓存数据
+    if (window.meetingCacheManager) {
+        const clearResult = window.meetingCacheManager.clearCache();
+        if (clearResult.success) {
+            showMessage('会议设置已重置为默认值，参会人员名单已清除，缓存数据已删除', 'success');
+        } else {
+            showMessage('会议设置已重置，参会人员名单已清除，但缓存清除失败：' + clearResult.message, 'warning');
+        }
+    } else {
+        showMessage('会议设置已重置为默认值，参会人员名单已清除，但缓存管理器未初始化', 'warning');
+    }
+}
+
+// 清除参会人员管理名单
+function clearAttendeesList() {
+    // 先释放所有已分配的座位
+    attendees.forEach(attendee => {
+        if (attendee.assignedSeat) {
+            const { type, row, number, area } = attendee.assignedSeat;
+            const seatElement = document.querySelector(`[data-type="${type}"][data-row="${row}"][data-number="${number}"]${type === 'audience' ? `[data-area="${area}"]` : ''}`);
+            if (seatElement) {
+                seatElement.classList.remove('occupied');
+                seatElement.textContent = `${row}-${number}`;
+            }
+        }
+    });
+    
+    // 清空参会人员数组
+    attendees = [];
+    
+    // 更新参会人员列表显示
+    updateAttendeeList();
+}
+
+function generateLayout() {
             clearLayout();
             
             const leaderRows = parseInt(document.getElementById('leaderRows').value);
@@ -3576,34 +3647,13 @@ function addAudienceArea() {
                 }
             }
 
-            // 更新保存状态指示器
-            updateSaveStatus(success) {
-                const saveStatus = document.getElementById('saveStatus');
-                if (!saveStatus) return;
-
-                const indicator = saveStatus.querySelector('.save-indicator');
-                const text = saveStatus.querySelector('.save-text');
-                
-                if (success) {
-                    indicator.style.backgroundColor = '#28a745';
-                    text.textContent = '已自动保存';
-                    saveStatus.style.opacity = '0.8';
-                } else {
-                    indicator.style.backgroundColor = '#dc3545';
-                    text.textContent = '保存失败';
-                    saveStatus.style.opacity = '1';
-                }
-
-                // 一段时间后恢复默认状态
-                if (this.saveIndicatorTimeout) {
-                    clearTimeout(this.saveIndicatorTimeout);
-                }
-                
-                this.saveIndicatorTimeout = setTimeout(() => {
-                    text.textContent = '自动保存中...';
-                    saveStatus.style.opacity = '0.5';
-                }, 2000);
+            // 更新保存状态指示器（已改为右下角提示）
+        updateSaveStatus(success) {
+            // 使用右下角通知替代
+            if (success) {
+                showSaveNotification('数据已自动保存');
             }
+        }
 
             // 测试缓存功能
             testCacheFunctionality() {
@@ -3622,22 +3672,9 @@ function addAudienceArea() {
                 return { valid: true, message: '缓存功能测试通过' };
         }
         
-        // 更新缓存状态显示
+        // 更新缓存状态显示（已改为右下角提示）
         updateCacheStatus() {
-            const statusElement = document.getElementById('cacheStatus');
-            const lastSaveElement = document.getElementById('lastSaveInfo');
-            
-            if (statusElement && lastSaveElement) {
-                if (this.lastSaveTime) {
-                    statusElement.textContent = '正常';
-                    statusElement.style.color = '#27ae60';
-                    lastSaveElement.textContent = `上次保存时间：${this.formatTime(this.lastSaveTime)}`;
-                } else {
-                    statusElement.textContent = '未保存';
-                    statusElement.style.color = '#e74c3c';
-                    lastSaveElement.textContent = '上次保存时间：-';
-                }
-            }
+            // 不再更新UI状态显示
         }
         
         // 格式化时间显示
@@ -3657,67 +3694,36 @@ function addAudienceArea() {
             }
         }
         
-        // 更新保存状态指示器
+        // 更新保存状态指示器（改为右下角提示）
         updateSaveStatus(isSuccess) {
-            this.updateCacheStatus();
-            
-            // 显示临时的保存成功提示
+            // 显示临时的保存成功提示在右下角
             if (isSuccess) {
-                const statusElement = document.getElementById('cacheStatus');
-                if (statusElement) {
-                    const originalText = statusElement.textContent;
-                    statusElement.textContent = '已保存！';
-                    statusElement.style.color = '#27ae60';
-                    
-                    if (this.saveIndicatorTimeout) {
-                        clearTimeout(this.saveIndicatorTimeout);
-                    }
-                    
-                    this.saveIndicatorTimeout = setTimeout(() => {
-                        this.updateCacheStatus();
-                    }, 2000);
-                }
+                showSaveNotification('数据已自动保存');
             }
         }
     }
     
-    // 强制保存缓存
-    function forceSaveCache() {
-        if (window.meetingCacheManager) {
-            const result = window.meetingCacheManager.triggerSave();
-            if (result.success) {
-                showMessage('数据已强制保存到缓存', 'success');
-            } else {
-                showMessage('保存失败: ' + result.message, 'error');
-            }
-        } else {
-            showMessage('缓存管理器未初始化', 'warning');
-        }
-    }
-    
-    // 确认清除缓存
-    function clearCacheConfirm() {
-        if (confirm('确定要清除所有缓存数据吗？此操作不可恢复！\n\n清除后，刷新页面将不会恢复当前的数据。')) {
-            if (window.meetingCacheManager) {
-                const result = window.meetingCacheManager.clearCache();
-                if (result.success) {
-                    showMessage('缓存已清除', 'success');
-                    // 更新UI状态
-                    window.meetingCacheManager.updateCacheStatus();
-                } else {
-                    showMessage('清除缓存失败: ' + result.message, 'error');
-                }
-            }
-        }
-    }
-    
-    // 测试缓存功能
-    function testCacheFunctionality() {
-        if (window.meetingCacheManager) {
-            const result = window.meetingCacheManager.testCache();
-            showMessage(result.message, result.valid ? 'success' : 'error');
-        } else {
-            showMessage('缓存管理器未初始化', 'warning');
+    // 缓存相关功能函数已移除
+    // 缓存操作已改为完全后台自动处理
+
+    // 显示保存成功提示
+    function showSaveNotification(message) {
+        const notification = document.getElementById('saveNotification');
+        const notificationText = document.getElementById('saveNotificationText');
+        
+        if (notification && notificationText) {
+            // 更新消息内容
+            notificationText.textContent = message || '数据已自动保存';
+            
+            // 显示通知
+            notification.style.opacity = '1';
+            notification.style.transform = 'translateY(0)';
+            
+            // 3秒后自动隐藏
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateY(20px)';
+            }, 3000);
         }
     }
 
@@ -3851,6 +3857,23 @@ function addAudienceArea() {
         </div>
     </div>
 
+    <!-- 重置确认模态框 -->
+    <div id="resetConfirmModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1000; justify-content: center; align-items: center; animation: fadeIn 0.2s ease-out;">
+        <div class="modal-content" style="background: white; border-radius: 8px; padding: 2rem; width: 450px; max-width: 95vw; box-shadow: 0 4px 20px rgba(0,0,0,0.15); transform: translateY(0); transition: transform 0.3s ease;">
+            <h3 style="margin-bottom: 1.5rem; color: #2c3e50; font-size: 1.4rem;">确认重置</h3>
+            <div style="margin-bottom: 1.5rem;">
+                <p style="margin-bottom: 1rem; color: #555; font-size: 1rem; line-height: 1.5;">确定要重置会议设置吗？此操作将清除所有布局、参会人员名单和缓存数据，且无法撤销。</p>
+                <div style="padding: 0.8rem; background-color: #f8f9fa; border-left: 4px solid #f39c12; border-radius: 4px;">
+                    <p style="margin: 0; color: #7f8c8d; font-size: 0.9rem;">请确认您已保存重要数据</p>
+                </div>
+            </div>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button class="btn btn-secondary" onclick="closeResetConfirmModal()" style="min-width: 80px;">取消</button>
+                <button class="btn btn-primary" onclick="performReset()" style="min-width: 100px;">确定重置</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 删除确认模态框 -->
         <div id="deleteConfirmModal" class="modal">
             <div class="modal-content">
@@ -3899,5 +3922,12 @@ function addAudienceArea() {
                 </div>
             </div>
         </div>
+
+    <!-- 右下角保存成功提示组件 -->
+    <div id="saveNotification" style="position: fixed; bottom: 20px; right: 20px; background-color: rgba(40, 167, 69, 0.95); color: white; padding: 12px 20px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); z-index: 1000; opacity: 0; transform: translateY(20px); transition: opacity 0.3s ease, transform 0.3s ease; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+        <span>✅</span>
+        <span id="saveNotificationText">数据已自动保存</span>
+    </div>
+
     </body>
 </html>
