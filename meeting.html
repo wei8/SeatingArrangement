@@ -2397,6 +2397,27 @@ function addAudienceArea() {
                 seatingArea.appendChild(newLeaderSection);
             }
             
+            // 从参会人员列表中查找已分配领导席的人员并更新座位显示
+            attendees.forEach(attendee => {
+                if (attendee.assignedSeat && attendee.assignedSeat.type === 'leader') {
+                    const { row, number } = attendee.assignedSeat;
+                    // 查找对应的座位元素
+                    const seatElement = document.querySelector(`[data-type="leader"][data-row="${row}"][data-number="${number}"]`);
+                    if (seatElement) {
+                        // 更新座位状态和显示
+                        seatElement.classList.add('occupied');
+                        seatElement.textContent = attendee.name.length > 4 ? attendee.name.substring(0, 4) : attendee.name;
+                        
+                        // 更新seats数组中的对应信息
+                        const seatInfo = seats.find(s => s.type === 'leader' && s.row === parseInt(row) && s.number === parseInt(number));
+                        if (seatInfo) {
+                            seatInfo.occupied = true;
+                            seatInfo.attendeeId = attendee.id;
+                        }
+                    }
+                }
+            });
+            
             // 为新创建的座位添加拖拽事件
             addSeatDragEvents();
             
