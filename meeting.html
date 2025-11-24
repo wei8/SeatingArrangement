@@ -1026,7 +1026,6 @@
         }
     
     </style>
-</head>
 <body>
     <div class="container">
         <header>
@@ -1074,6 +1073,19 @@
                     <div>总座位数：<span id="totalSeats">0</span></div>
                     <div>领导席：<span id="leaderSeats">0</span></div>
                     <div>观众席：<span id="audienceSeats">0</span></div>
+                </div>
+                
+                <!-- 缓存状态指示器 -->
+                <div id="cacheStatusIndicator" class="cache-status" style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 0.8rem; margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <div style="font-weight: 600; color: #2c3e50;">💾 缓存状态</div>
+                        <div id="cacheStatus" style="font-size: 0.85rem; color: #95a5a6;">未初始化</div>
+                    </div>
+                    <div id="lastSaveInfo" style="font-size: 0.8rem; color: #7f8c8d;">上次保存时间：-</div>
+                    <div style="margin-top: 0.8rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button id="forceSaveBtn" class="btn btn-secondary" onclick="forceSaveCache()" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">强制保存</button>
+                        <button id="clearCacheBtn" class="btn btn-warning" onclick="clearCacheConfirm()" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">清除缓存</button>
+                    </div>
                 </div>
                 
                 <h3>参会人员管理</h3>
@@ -1204,13 +1216,64 @@
             
             // 延迟生成布局，确保DOM完全加载
             setTimeout(function() {
+                // 初始化缓存管理器
+                window.meetingCacheManager = new MeetingCacheManager();
+                
+                // 尝试从缓存恢复数据
+                const cacheData = window.meetingCacheManager.loadFromLocalStorage();
+                if (cacheData) {
+                    console.log('成功从缓存恢复数据');
+                    // 恢复参会人员数据
+                    if (cacheData.attendees && Array.isArray(cacheData.attendees)) {
+                        attendees = cacheData.attendees;
+                    }
+                    
+                    // 恢复座位分配数据
+                    if (cacheData.seats && Array.isArray(cacheData.seats)) {
+                        // 先保存原始的座位元素引用
+                        const originalSeats = [...seats];
+                        seats = cacheData.seats;
+                        // 恢复元素引用需要在generateLayout后处理
+                    }
+                }
+                
                 generateLayout();
+                
+                // 恢复座位元素引用和分配状态
+                if (cacheData && cacheData.seats) {
+                    // 遍历所有座位，重新应用分配状态
+                    seats.forEach(seat => {
+                        if (seat.occupied && seat.attendeeId) {
+                            const seatElement = document.querySelector(`[data-type="${seat.type}"][data-row="${seat.row}"][data-number="${seat.number}"]${seat.type === 'audience' ? `[data-area="${seat.area}"]` : ''}`);
+                            if (seatElement) {
+                                seat.element = seatElement;
+                                seatElement.classList.add('occupied');
+                                // 查找对应的参会人员并显示姓名
+                                const attendee = attendees.find(a => a.id === seat.attendeeId);
+                                if (attendee) {
+                                    seatElement.textContent = attendee.name.length > 4 ? attendee.name.substring(0, 4) : attendee.name;
+                                }
+                            }
+                        }
+                    });
+                }
+                
                 // 显示会议厅
                 if (meetingHall) {
                     meetingHall.style.visibility = 'visible';
                     meetingHall.style.opacity = '1';
                     meetingHall.style.transition = 'opacity 0.3s ease';
                 }
+                
+                // 更新参会人员列表显示
+                updateAttendeeList();
+                
+                // 更新统计信息
+                updateStatistics();
+                
+                // 开始自动保存
+                window.meetingCacheManager.startAutoSave();
+                
                 isInitializing = false;
             }, 100);
         });
@@ -1914,9 +1977,25 @@
         function deleteArea(areaIndex) {
             pendingDeleteAreaIndex = areaIndex;
             const areaBlock = document.querySelector(`[data-area-id="${areaIndex}"]`);
+            
+            // 添加空值检查，避免空引用错误
+            if (!areaBlock) {
+                console.error('找不到要删除的区域:', areaIndex);
+                alert('找不到要删除的区域，请刷新页面重试。');
+                return;
+            }
+            
             const areaName = areaBlock.dataset.name || `区域${areaIndex}`;
-            document.getElementById('deleteConfirmMessage').textContent = `确定要删除"${areaName}"吗？此操作不可撤销。`;
-            document.getElementById('deleteConfirmModal').style.display = 'block';
+            const deleteConfirmMessage = document.getElementById('deleteConfirmMessage');
+            const deleteConfirmModal = document.getElementById('deleteConfirmModal');
+            
+            // 确保元素存在
+            if (deleteConfirmMessage && deleteConfirmModal) {
+                deleteConfirmMessage.textContent = `确定要删除"${areaName}"吗？此操作不可撤销。`;
+                deleteConfirmModal.style.display = 'block';
+            } else {
+                console.error('删除确认模态框元素不存在');
+            }
         }
         
         // 确认删除区域
@@ -2073,9 +2152,189 @@ function addAudienceArea() {
             document.getElementById('seatModal').style.display = 'none';
         }
 
+        // 更新领导席座位
+        function updateLeaderSeats() {
+            // 保存领导席的占用信息
+            const leaderSeatsInfo = [];
+            seats.forEach(seat => {
+                if (seat.type === 'leader') {
+                    leaderSeatsInfo.push({
+                        row: seat.row,
+                        number: seat.number,
+                        occupied: seat.occupied,
+                        attendeeId: seat.attendeeId
+                    });
+                }
+            });
+            
+            // 移除现有的领导席区域
+            const existingLeaderSection = document.querySelector('.leader-section');
+            if (existingLeaderSection) {
+                existingLeaderSection.remove();
+            }
+            
+            // 从 seats 数组中移除领导席座位
+            seats = seats.filter(seat => seat.type !== 'leader');
+            
+            // 获取新的领导席设置
+            const leaderRows = parseInt(document.getElementById('leaderRows').value);
+            const seatsPerRowInput = document.getElementById('seatsPerRow').value;
+            
+            // 解析每排座位数
+            let seatsPerRowArray = [];
+            if (seatsPerRowInput.includes(',')) {
+                seatsPerRowArray = seatsPerRowInput.split(',').map(s => parseInt(s.trim()));
+            } else {
+                // 如果没有逗号，使用统一的座位数
+                seatsPerRowArray = Array(leaderRows).fill(parseInt(seatsPerRowInput));
+            }
+            
+            // 确保数组长度与排数匹配
+            if (seatsPerRowArray.length < leaderRows) {
+                // 如果指定的座位数少于排数，用最后一个值填充剩余排
+                const lastValue = seatsPerRowArray[seatsPerRowArray.length - 1];
+                while (seatsPerRowArray.length < leaderRows) {
+                    seatsPerRowArray.push(lastValue);
+                }
+            } else if (seatsPerRowArray.length > leaderRows) {
+                // 如果指定的座位数多于排数，截取前面的值
+                seatsPerRowArray = seatsPerRowArray.slice(0, leaderRows);
+            }
+            
+            const seatingArea = document.getElementById('seatingArea');
+            
+            // 在观众席标题前插入新的领导席
+            const audienceTitleSection = document.querySelector('.audience-title-section');
+            const newLeaderSection = document.createElement('div');
+            newLeaderSection.className = 'leader-section';
+            
+            // 生成标题，显示每排座位数
+            const title = document.createElement('div');
+            title.className = 'section-title';
+            let titleText = '🪑 领导席 (';
+            if (seatsPerRowArray.length === 1) {
+                titleText += `${leaderRows}排，每排${seatsPerRowArray[0]}座`;
+            } else {
+                titleText += `${leaderRows}排：`;
+                for (let i = 0; i < seatsPerRowArray.length; i++) {
+                    titleText += `第${i + 1}排${seatsPerRowArray[i]}座`;
+                    if (i < seatsPerRowArray.length - 1) titleText += '，';
+                }
+            }
+            titleText += ')';
+            title.textContent = titleText;
+            newLeaderSection.appendChild(title);
+            
+            // 找到最大座位数，用于统一过道位置
+            const maxSeatsPerRow = Math.max(...seatsPerRowArray.slice(0, leaderRows));
+            
+            // 计算统一的过道位置（基于最大座位数）
+            const aisleInterval = parseInt(document.getElementById('aisleInterval').value);
+            const aisleCount = aisleInterval > 0 ? Math.floor(maxSeatsPerRow / aisleInterval) : 0;
+            const aislePositions = [];
+            
+            if (aisleCount > 0) {
+                const seatsBetweenAisles = Math.floor(maxSeatsPerRow / (aisleCount + 1));
+                for (let i = 1; i <= aisleCount; i++) {
+                    aislePositions.push(i * (seatsBetweenAisles + 1) - 1);
+                }
+            }
+            
+            for (let row = 0; row < leaderRows; row++) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'seat-row';
+                
+                const currentSeatsPerRow = seatsPerRowArray[row] || seatsPerRowArray[seatsPerRowArray.length - 1];
+                let seatCounter = 0;
+                let positionCounter = 0;
+                
+                // 根据最大座位数和当前座位数计算偏移
+                const seatOffset = Math.floor((maxSeatsPerRow - currentSeatsPerRow) / 2);
+                
+                for (let i = 0; i < maxSeatsPerRow + aisleCount; i++) {
+                    // 检查当前位置是否应该放置过道
+                    const isAislePosition = aislePositions.includes(positionCounter);
+                    
+                    if (isAislePosition && aisleCount > 0) {
+                        // 添加过道
+                        const aisle = document.createElement('div');
+                        aisle.className = 'aisle';
+                        aisle.innerHTML = '🚶';
+                        rowDiv.appendChild(aisle);
+                        positionCounter++;
+                    } else {
+                        // 检查是否应该放置座位
+                        const effectivePosition = positionCounter - aislePositions.filter(pos => pos < positionCounter).length;
+                        
+                        if (effectivePosition >= seatOffset && seatCounter < currentSeatsPerRow) {
+                            // 添加座位
+                            const seat = document.createElement('div');
+                            seat.className = 'seat vip';
+                            seat.textContent = `${row + 1}-${seatCounter + 1}`;
+                            seat.dataset.row = row + 1;
+                            seat.dataset.number = seatCounter + 1;
+                            seat.dataset.type = 'leader';
+                            seat.dataset.areaId = '0';
+                            seat.dataset.area = 'vip';
+                            seat.onclick = () => selectSeat(seat);
+                            
+                            // 检查是否需要恢复占用状态
+                            const savedSeatInfo = leaderSeatsInfo.find(s => s.row === row + 1 && s.number === seatCounter + 1);
+                            const isOccupied = savedSeatInfo && savedSeatInfo.occupied;
+                            
+                            if (isOccupied) {
+                                seat.classList.add('occupied');
+                                // 查找对应的参会人员并显示姓名
+                                const attendee = attendees.find(a => a.id === savedSeatInfo.attendeeId);
+                                if (attendee) {
+                                    seat.textContent = attendee.name.length > 4 ? attendee.name.substring(0, 4) : attendee.name;
+                                }
+                            }
+                            
+                            seats.push({
+                                element: seat,
+                                row: row + 1,
+                                number: seatCounter + 1,
+                                type: 'leader',
+                                areaId: 0,
+                                area: 'vip',
+                                occupied: isOccupied,
+                                attendeeId: savedSeatInfo ? savedSeatInfo.attendeeId : null
+                            });
+                            
+                            rowDiv.appendChild(seat);
+                            seatCounter++;
+                        } else {
+                            // 添加空白占位符（保持对齐）
+                            const placeholder = document.createElement('div');
+                            placeholder.style.width = '50px';
+                            placeholder.style.height = '50px';
+                            placeholder.style.visibility = 'hidden';
+                            rowDiv.appendChild(placeholder);
+                        }
+                        positionCounter++;
+                    }
+                }
+                
+                newLeaderSection.appendChild(rowDiv);
+            }
+            
+            // 插入新的领导席到观众席标题前
+            if (audienceTitleSection) {
+                seatingArea.insertBefore(newLeaderSection, audienceTitleSection);
+            } else {
+                seatingArea.appendChild(newLeaderSection);
+            }
+            
+            // 为新创建的座位添加拖拽事件
+            addSeatDragEvents();
+            
+            updateStatistics();
+        }
+        
         // 更新布局
         function updateLayout() {
-            generateLayout();
+            updateLeaderSeats();
         }
 
         // 清空布局
@@ -2559,6 +2818,11 @@ function addAudienceArea() {
             
             // 显示成功消息
             showMessage('参会人员信息已成功更新', 'success');
+            
+            // 触发缓存保存
+            if (window.meetingCacheManager) {
+                window.meetingCacheManager.triggerSave();
+            }
         }
         
         // 为编辑窗口按钮添加事件监听
@@ -2870,8 +3134,13 @@ function addAudienceArea() {
             // 更新列表显示
             updateAttendeeList();
             
-            // 关闭对话框
+            // 关闭所有对话框
             closeAttendeeAssignmentModal();
+            
+            // 关闭其他可能存在的模态框
+            document.querySelectorAll('.modal, .attendee-edit-modal').forEach(modal => {
+                modal.remove();
+            });
             
             showMessage(`已将 ${attendee.name} 分配到座位`, 'success');
         }
@@ -2911,7 +3180,548 @@ function addAudienceArea() {
             closeSeatModal();
         }
 
-        //截图导出功能 - 使用html2canvas实现真正的截图效果
+        // 缓存管理器类
+        class MeetingCacheManager {
+            constructor() {
+                this.cacheKey = 'meeting_seating_arrangement';
+                this.autoSaveInterval = null;
+                this.lastSaveTime = null;
+                this.saveIndicatorTimeout = null;
+                this.isSaving = false;
+                console.log('缓存管理器已初始化');
+                
+                // 监听页面卸载事件，进行最后一次保存
+                window.addEventListener('beforeunload', () => {
+                    this.saveToLocalStorage();
+                });
+                
+                // 页面加载时自动尝试恢复缓存
+                setTimeout(() => {
+                    const loadResult = this.loadFromLocalStorage();
+                    console.log('缓存恢复结果:', loadResult);
+                    this.updateCacheStatus();
+                    
+                    // 如果恢复了数据，显示提示信息
+                    if (loadResult.success) {
+                        showMessage('已从缓存恢复数据', 'info');
+                    }
+                }, 100);
+            }
+
+            // 保存当前状态到localStorage
+            saveToLocalStorage() {
+                // 防止重复保存
+                if (this.isSaving) return { success: false, message: '正在保存中...' };
+                
+                try {
+                    this.isSaving = true;
+                    
+                    // 收集需要缓存的数据
+                    const audienceSection = document.querySelector('.audience-section');
+                    const audienceSectionHeight = audienceSection ? parseInt(audienceSection.style.minHeight) || audienceSection.offsetHeight : 600;
+                    
+                    const cacheData = {
+                        attendees: attendees,
+                        seats: seats.map(seat => ({
+                            id: seat.id,
+                            type: seat.type,
+                            area: seat.area,
+                            row: seat.row,
+                            number: seat.number,
+                            occupied: seat.occupied,
+                            attendeeId: seat.attendeeId,
+                            // 不保存DOM元素引用
+                        })),
+                        leaderRows: document.getElementById('leaderRows').value,
+                        seatsPerRow: document.getElementById('seatsPerRow').value,
+                        aisleInterval: document.getElementById('aisleInterval').value,
+                        audienceSectionHeight: audienceSectionHeight,
+                        audienceAreas: Array.from(document.querySelectorAll('.audience-block')).map(block => {
+                            const areaId = block.dataset.areaId;
+                            const titleElement = block.querySelector('h4');
+                            const titleText = titleElement ? titleElement.textContent : '';
+                            const name = titleText.replace(/\s*\(.*\)$/, ''); // 提取区域名称
+                            const style = block.style;
+                            return {
+                                id: areaId,
+                                name: name,
+                                position: {
+                                    left: style.left || '0px',
+                                    top: style.top || '0px',
+                                    position: style.position || 'static'
+                                },
+                                config: {
+                                    rows: parseInt(block.dataset.rows) || 5,
+                                    cols: parseInt(block.dataset.cols) || 5
+                                }
+                            };
+                        }),
+                        timestamp: Date.now()
+                    };
+
+                    // 保存到localStorage
+                    localStorage.setItem(this.cacheKey, JSON.stringify(cacheData));
+                    this.lastSaveTime = new Date().toLocaleString();
+                    
+                    // 更新保存状态指示器
+                    this.updateSaveStatus(true);
+                    this.updateCacheStatus();
+                    
+                    console.log('数据已保存到本地缓存', this.lastSaveTime);
+                    return { success: true, message: '缓存保存成功' };
+                } catch (error) {
+                    console.error('保存缓存失败:', error);
+                    this.updateSaveStatus(false);
+                    return { success: false, message: '缓存保存失败: ' + error.message };
+                } finally {
+                    this.isSaving = false;
+                }
+            }
+
+            // 从localStorage加载数据
+            loadFromLocalStorage() {
+                try {
+                    const cachedData = localStorage.getItem(this.cacheKey);
+                    if (!cachedData) {
+                        console.log('没有找到缓存数据');
+                        return { success: false, message: '没有找到缓存数据' };
+                    }
+
+                    const parsedData = JSON.parse(cachedData);
+                    
+                    // 恢复参会人员数据
+                    if (Array.isArray(parsedData.attendees)) {
+                        attendees = parsedData.attendees;
+                        console.log('已恢复参会人员数据，共', attendees.length, '人');
+                    }
+
+                    // 恢复布局配置
+                    if (parsedData.leaderRows) {
+                        document.getElementById('leaderRows').value = parsedData.leaderRows;
+                    }
+                    if (parsedData.seatsPerRow) {
+                        document.getElementById('seatsPerRow').value = parsedData.seatsPerRow;
+                    }
+                    if (parsedData.aisleInterval) {
+                        document.getElementById('aisleInterval').value = parsedData.aisleInterval;
+                    }
+
+                    // 重新生成布局
+                    updateLayout();
+                    
+                    // 恢复观众席画布高度
+                    if (parsedData.audienceSectionHeight) {
+                        const audienceSection = document.querySelector('.audience-section');
+                        if (audienceSection) {
+                            audienceSection.style.minHeight = parsedData.audienceSectionHeight + 'px';
+                            console.log('已恢复观众席画布高度:', parsedData.audienceSectionHeight + 'px');
+                        }
+                    }
+
+                    // 恢复观众区
+                    if (Array.isArray(parsedData.audienceAreas)) {
+                        // 清空现有的观众区，避免重复创建
+                        const audienceSection = document.getElementById('audienceSection');
+                        if (audienceSection) {
+                            const existingBlocks = audienceSection.querySelectorAll('.audience-block');
+                            existingBlocks.forEach(block => block.remove());
+                        }
+                        
+                        // 清空座位数组中与观众区相关的数据
+                        seats = seats.filter(seat => seat.type !== 'audience');
+                        
+                        // 首先获取当前已有的观众区ID（此时应该为空）
+                        const existingAreaIds = new Set();
+                        document.querySelectorAll('.audience-block').forEach(block => {
+                            existingAreaIds.add(block.dataset.areaId);
+                        });
+                        
+                        parsedData.audienceAreas.forEach(cachedArea => {
+                            let areaBlock = document.querySelector(`.audience-block[data-area-id="${cachedArea.id}"]`);
+                            
+                            // 如果区域不存在，则创建新的观众区
+                            if (!areaBlock && cachedArea.id && cachedArea.name) {
+                                console.log(`创建缺失的观众区: ${cachedArea.name} (${cachedArea.id})`);
+                                
+                                const audienceSection = document.getElementById('audienceSection');
+                                
+                                // 创建新的观众区容器
+                                areaBlock = document.createElement('div');
+                                areaBlock.className = 'audience-block';
+                                areaBlock.dataset.areaId = cachedArea.id;
+                                areaBlock.dataset.rows = cachedArea.config?.rows || 5;
+                                areaBlock.dataset.cols = cachedArea.config?.cols || 5;
+                                
+                                // 设置区域标题
+                                const title = document.createElement('h4');
+                                title.textContent = cachedArea.name;
+                                title.style.cursor = 'default';
+                                title.title = '拖动区域块，双击恢复位置';
+                                areaBlock.appendChild(title);
+                                
+                                // 编辑控制按钮（添加编辑和删除按钮）
+                                const editControls = document.createElement('div');
+                                editControls.className = 'area-edit-controls';
+                                editControls.innerHTML = `
+                                    <button class="area-edit-btn edit" onclick="openAreaTitleModal(${cachedArea.id})" title="编辑区域">编辑</button>
+                                    <button class="area-edit-btn delete" onclick="deleteArea(${cachedArea.id})" title="删除区域">删除</button>
+                                `;
+                                areaBlock.appendChild(editControls);
+                                
+                                // 创建座位容器
+                                const seatsContainer = document.createElement('div');
+                                seatsContainer.className = 'seats-container';
+                                areaBlock.appendChild(seatsContainer);
+                                
+                                // 添加到观众席区域
+                                audienceSection.appendChild(areaBlock);
+                                
+                                // 添加拖动功能
+                                makeAreaDraggable(areaBlock);
+                                
+                                // 添加编辑功能
+                                areaBlock.addEventListener('dblclick', function() {
+                                    enterAreaEditMode(areaBlock);
+                                });
+                            }
+                            
+                            // 恢复位置信息
+                            if (areaBlock && cachedArea.position) {
+                                const leftPos = cachedArea.position.left || '0px';
+                                const topPos = cachedArea.position.top || '0px';
+                                const posType = cachedArea.position.position || 'absolute';
+                                
+                                areaBlock.style.position = posType;
+                                areaBlock.style.left = leftPos;
+                                areaBlock.style.top = topPos;
+                                console.log(`恢复观众区位置: ${cachedArea.name} - left: ${leftPos}, top: ${topPos}`);
+                            }
+                            
+                            // 恢复行列配置
+                            if (areaBlock && cachedArea.config) {
+                                areaBlock.dataset.rows = cachedArea.config.rows || 5;
+                                areaBlock.dataset.cols = cachedArea.config.cols || 5;
+                                
+                                // 获取行列配置
+                                const rows = cachedArea.config.rows || parseInt(areaBlock.dataset.rows) || 5;
+                                const cols = cachedArea.config.cols || parseInt(areaBlock.dataset.cols) || 5;
+                                
+                                // 确保座位容器存在
+                                let seatsContainer = areaBlock.querySelector('.seats-container');
+                                if (!seatsContainer) {
+                                    seatsContainer = document.createElement('div');
+                                    seatsContainer.className = 'seats-container';
+                                    areaBlock.appendChild(seatsContainer);
+                                }
+                                
+                                // 清空现有座位并重新生成
+                                seatsContainer.innerHTML = '';
+                                
+                                // 生成座位
+                                const areaId = parseInt(cachedArea.id);
+                                const areaName = cachedArea.name;
+                                let seatCounter = 0;
+                                
+                                // 创建座位网格容器
+                                const seatsGrid = document.createElement('div');
+                                seatsGrid.className = 'area-seats-grid';
+                                
+                                // 设置网格样式 - 修复座位排列异常问题
+                                const maxColumnsPerRow = Math.min(cols, 20);
+                                seatsGrid.style.gridTemplateColumns = `repeat(${maxColumnsPerRow}, minmax(35px, 1fr))`;
+                                seatsGrid.style.display = 'grid';
+                                seatsGrid.style.justifyContent = 'center';
+                                seatsGrid.style.marginLeft = 'auto';
+                                seatsGrid.style.marginRight = 'auto';
+                                seatsGrid.style.width = 'fit-content';
+                                 
+                                // 设置区域块宽度 - 修复尺寸不正确问题
+                                const optimalWidth = Math.min(maxColumnsPerRow * 55 + 40, window.innerWidth - 100);
+                                areaBlock.style.width = `${optimalWidth}px`;
+                                areaBlock.style.maxWidth = '100%';
+                                
+                                seatsContainer.appendChild(seatsGrid);
+                                
+                                // 生成座位
+                                for (let row = 0; row < rows; row++) {
+                                    for (let col = 0; col < cols; col++) {
+                                        const seatElement = document.createElement('div');
+                                        seatElement.className = 'seat';
+                                        seatElement.style.position = 'static'; // 覆盖CSS中的position:absolute，使grid布局正常工作
+                                        seatElement.textContent = `${row + 1}-${col + 1}`;
+                                        seatElement.dataset.area = areaName;
+                                        seatElement.dataset.row = row + 1;
+                                        seatElement.dataset.number = col + 1;
+                                        seatElement.dataset.type = 'audience';
+                                        seatElement.dataset.areaId = areaId;
+                                        seatElement.onclick = () => selectSeat(seatElement);
+                                        
+                                        seats.push({
+                                            element: seatElement,
+                                            area: areaName,
+                                            areaId: areaId,
+                                            row: row + 1,
+                                            number: col + 1,
+                                            type: 'audience',
+                                            occupied: false
+                                        });
+                                        
+                                        seatsGrid.appendChild(seatElement);
+                                        seatCounter++;
+                                    }
+                                }
+                                
+                                // 更新区域标题显示座位数
+                                areaBlock.querySelector('h4').textContent = `${areaName} (${rows}排×${cols}列=${seatCounter}座)`;
+                                
+                                console.log(`为观众区 ${areaName} 生成座位: ${rows}行 x ${cols}列`);
+                            }
+                        });
+                        
+                        // 调整会议厅大小
+                        setTimeout(adjustMeetingHallSize, 100);
+                        
+                        // 为新创建的座位添加拖拽事件
+                        addSeatDragEvents();
+                    }
+
+                    // 更新参会人员列表和座位显示
+                    updateAttendeeList();
+                    this.restoreAssignedSeats(parsedData.attendees);
+
+                    console.log('缓存数据加载成功');
+                    return { success: true, message: '缓存数据加载成功' };
+                } catch (error) {
+                    console.error('加载缓存失败:', error);
+                    return { success: false, message: '缓存加载失败: ' + error.message };
+                }
+            }
+
+            // 恢复已分配的座位
+            restoreAssignedSeats(attendeesData) {
+                if (!Array.isArray(attendeesData)) return;
+                
+                attendeesData.forEach(attendee => {
+                    if (attendee.assignedSeat) {
+                        const { type, row, number, area } = attendee.assignedSeat;
+                        const seatElement = document.querySelector(`[data-type="${type}"][data-row="${row}"][data-number="${number}"]${type === 'audience' ? `[data-area="${area}"]` : ''}`);
+                        if (seatElement) {
+                            seatElement.classList.add('occupied');
+                            seatElement.textContent = attendee.name;
+                        }
+                    }
+                });
+            }
+
+            // 清除缓存
+            clearCache() {
+                try {
+                    localStorage.removeItem(this.cacheKey);
+                    this.lastSaveTime = null;
+                    console.log('缓存已清除');
+                    return { success: true, message: '缓存已清除' };
+                } catch (error) {
+                    console.error('清除缓存失败:', error);
+                    return { success: false, message: '清除缓存失败: ' + error.message };
+                }
+            }
+
+            // 验证缓存数据
+            verifyCache() {
+                try {
+                    const cachedData = localStorage.getItem(this.cacheKey);
+                    if (!cachedData) {
+                        return { valid: false, message: '缓存不存在' };
+                    }
+
+                    const parsedData = JSON.parse(cachedData);
+                    const hasAttendees = Array.isArray(parsedData.attendees) && parsedData.attendees.length > 0;
+                    const hasLayoutData = parsedData.leaderRows && parsedData.seatsPerRow;
+                    
+                    return {
+                        valid: hasAttendees || hasLayoutData,
+                        message: `缓存验证通过<br>参会人员: ${parsedData.attendees?.length || 0} 人<br>布局配置: ${hasLayoutData ? '存在' : '不存在'}<br>保存时间: ${new Date(parsedData.timestamp).toLocaleString()}`
+                    };
+                } catch (error) {
+                    return { valid: false, message: '缓存数据无效: ' + error.message };
+                }
+            }
+
+            // 开始自动保存
+            startAutoSave(intervalMs = 30000) { // 默认30秒自动保存一次
+                if (this.autoSaveInterval) {
+                    clearInterval(this.autoSaveInterval);
+                }
+                
+                this.autoSaveInterval = setInterval(() => {
+                    console.log('自动保存数据...');
+                    this.saveToLocalStorage();
+                }, intervalMs);
+                
+                console.log(`已启动自动保存，间隔 ${intervalMs/1000} 秒`);
+            }
+            
+            // 触发即时保存（用于关键操作后）
+            triggerSave() {
+                console.log('触发即时保存...');
+                return this.saveToLocalStorage();
+            }
+
+            // 停止自动保存
+            stopAutoSave() {
+                if (this.autoSaveInterval) {
+                    clearInterval(this.autoSaveInterval);
+                    this.autoSaveInterval = null;
+                    console.log('已停止自动保存');
+                }
+            }
+
+            // 更新保存状态指示器
+            updateSaveStatus(success) {
+                const saveStatus = document.getElementById('saveStatus');
+                if (!saveStatus) return;
+
+                const indicator = saveStatus.querySelector('.save-indicator');
+                const text = saveStatus.querySelector('.save-text');
+                
+                if (success) {
+                    indicator.style.backgroundColor = '#28a745';
+                    text.textContent = '已自动保存';
+                    saveStatus.style.opacity = '0.8';
+                } else {
+                    indicator.style.backgroundColor = '#dc3545';
+                    text.textContent = '保存失败';
+                    saveStatus.style.opacity = '1';
+                }
+
+                // 一段时间后恢复默认状态
+                if (this.saveIndicatorTimeout) {
+                    clearTimeout(this.saveIndicatorTimeout);
+                }
+                
+                this.saveIndicatorTimeout = setTimeout(() => {
+                    text.textContent = '自动保存中...';
+                    saveStatus.style.opacity = '0.5';
+                }, 2000);
+            }
+
+            // 测试缓存功能
+            testCacheFunctionality() {
+                // 保存当前状态
+                const saveResult = this.saveToLocalStorage();
+                if (!saveResult.success) {
+                    return { valid: false, message: '保存测试失败: ' + saveResult.message };
+                }
+
+                // 验证保存结果
+                const verifyResult = this.verifyCache();
+                if (!verifyResult.valid) {
+                    return { valid: false, message: '验证失败: ' + verifyResult.message };
+                }
+
+                return { valid: true, message: '缓存功能测试通过' };
+        }
+        
+        // 更新缓存状态显示
+        updateCacheStatus() {
+            const statusElement = document.getElementById('cacheStatus');
+            const lastSaveElement = document.getElementById('lastSaveInfo');
+            
+            if (statusElement && lastSaveElement) {
+                if (this.lastSaveTime) {
+                    statusElement.textContent = '正常';
+                    statusElement.style.color = '#27ae60';
+                    lastSaveElement.textContent = `上次保存时间：${this.formatTime(this.lastSaveTime)}`;
+                } else {
+                    statusElement.textContent = '未保存';
+                    statusElement.style.color = '#e74c3c';
+                    lastSaveElement.textContent = '上次保存时间：-';
+                }
+            }
+        }
+        
+        // 格式化时间显示
+        formatTime(timestamp) {
+            const now = new Date();
+            const date = typeof timestamp === 'string' ? new Date(timestamp) : new Date();
+            const diffMs = now - date;
+            const diffSecs = Math.floor(diffMs / 1000);
+            const diffMins = Math.floor(diffSecs / 60);
+            
+            if (diffSecs < 60) {
+                return `${diffSecs}秒前`;
+            } else if (diffMins < 60) {
+                return `${diffMins}分钟前`;
+            } else {
+                return date.toLocaleTimeString('zh-CN');
+            }
+        }
+        
+        // 更新保存状态指示器
+        updateSaveStatus(isSuccess) {
+            this.updateCacheStatus();
+            
+            // 显示临时的保存成功提示
+            if (isSuccess) {
+                const statusElement = document.getElementById('cacheStatus');
+                if (statusElement) {
+                    const originalText = statusElement.textContent;
+                    statusElement.textContent = '已保存！';
+                    statusElement.style.color = '#27ae60';
+                    
+                    if (this.saveIndicatorTimeout) {
+                        clearTimeout(this.saveIndicatorTimeout);
+                    }
+                    
+                    this.saveIndicatorTimeout = setTimeout(() => {
+                        this.updateCacheStatus();
+                    }, 2000);
+                }
+            }
+        }
+    }
+    
+    // 强制保存缓存
+    function forceSaveCache() {
+        if (window.meetingCacheManager) {
+            const result = window.meetingCacheManager.triggerSave();
+            if (result.success) {
+                showMessage('数据已强制保存到缓存', 'success');
+            } else {
+                showMessage('保存失败: ' + result.message, 'error');
+            }
+        } else {
+            showMessage('缓存管理器未初始化', 'warning');
+        }
+    }
+    
+    // 确认清除缓存
+    function clearCacheConfirm() {
+        if (confirm('确定要清除所有缓存数据吗？此操作不可恢复！\n\n清除后，刷新页面将不会恢复当前的数据。')) {
+            if (window.meetingCacheManager) {
+                const result = window.meetingCacheManager.clearCache();
+                if (result.success) {
+                    showMessage('缓存已清除', 'success');
+                    // 更新UI状态
+                    window.meetingCacheManager.updateCacheStatus();
+                } else {
+                    showMessage('清除缓存失败: ' + result.message, 'error');
+                }
+            }
+        }
+    }
+    
+    // 测试缓存功能
+    function testCacheFunctionality() {
+        if (window.meetingCacheManager) {
+            const result = window.meetingCacheManager.testCache();
+            showMessage(result.message, result.valid ? 'success' : 'error');
+        } else {
+            showMessage('缓存管理器未初始化', 'warning');
+        }
+    }
+
+        // 截图导出功能 - 使用html2canvas实现真正的截图效果
         function exportScreenshot() {
             try {
                 // 获取会议厅元素
@@ -3046,7 +3856,7 @@ function addAudienceArea() {
             <div class="modal-content">
                 <span class="close" onclick="closeDeleteConfirmModal()">&times;</span>
                 <h3>确认删除</h3>
-                <p>确定要删除这个区域吗？此操作不可撤销。</p>
+                <p id="deleteConfirmMessage">确定要删除这个区域吗？此操作不可撤销。</p>
                 <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
                     <button class="btn btn-secondary" onclick="closeDeleteConfirmModal()">取消</button>
                     <button class="btn btn-danger" onclick="confirmDeleteArea()">删除</button>
