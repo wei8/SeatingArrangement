@@ -60,9 +60,81 @@ function showModal(message, title = '提示', type = 'info') {
     document.addEventListener('keydown', escHandler);
 }
 
-// 简化的消息显示函数
+// 简化的消息显示函数 - 右下角通知
 function showMessage(message, type = 'info') {
-    showModal(message, type === 'error' ? '错误' : type === 'success' ? '成功' : '提示', type);
+    // 创建通知元素
+    const notification = document.createElement('div');
+    
+    // 设置样式，定位在右下角
+    notification.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        z-index: 10000;
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.3s ease, transform 0.3s ease;
+        max-width: 300px;
+        word-wrap: break-word;
+        font-family: Microsoft YaHei, Arial, sans-serif;
+    `;
+    
+    // 设置图标和颜色基于类型
+    let icon = 'ℹ️';
+    let backgroundColor = 'rgba(52, 152, 219, 0.9)'; // 默认info颜色
+    
+    switch(type) {
+        case 'success':
+            icon = '✅';
+            backgroundColor = 'rgba(39, 174, 96, 0.9)';
+            break;
+        case 'error':
+            icon = '❌';
+            backgroundColor = 'rgba(231, 76, 60, 0.9)';
+            break;
+        case 'warning':
+            icon = '⚠️';
+            backgroundColor = 'rgba(243, 156, 18, 0.9)';
+            break;
+    }
+    
+    // 设置背景颜色
+    notification.style.background = backgroundColor;
+    
+    // 设置内容
+    notification.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.2rem;">${icon}</span>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    // 添加到body
+    document.body.appendChild(notification);
+    
+    // 显示通知
+    setTimeout(() => {
+        notification.style.opacity = '1';
+        notification.style.transform = 'translateY(0)';
+    }, 10);
+    
+    // 3秒后自动隐藏并移除
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateY(20px)';
+        
+        // 动画结束后移除元素
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 3000);
 }
 
 class SeatingArrangement {
@@ -113,7 +185,7 @@ class SeatingArrangement {
         document.getElementById('guestImportFile').addEventListener('change', (e) => this.handleFileImport(e));
         
         // 导出图片按钮事件
-        document.getElementById('exportImageBtn').addEventListener('click', () => this.exportImage());
+        document.getElementById('exportImageBtn').addEventListener('click', () => this.exportScreenshot());
         
         
         // 模态框
@@ -1806,6 +1878,110 @@ class SeatingArrangement {
         
         console.log('=== 画布调整测试完成 ===');
     }
+
+    exportScreenshot() {
+            try {
+                // 获取会议厅元素
+                const meetingHall = document.getElementById('seatingBoard');
+                if (!meetingHall) {
+                    showMessage('找不到会议厅元素！', 'error');
+                    return;
+                }
+
+                // 显示加载提示
+                showMessage('正在生成截图，请稍候...', 'info');
+
+                // 使用html2canvas进行截图
+                html2canvas(meetingHall, {
+                    backgroundColor: '#f8f9fa',
+                    scale: 2, // 高分辨率
+                    useCORS: true,
+                    allowTaint: true,
+                    width: meetingHall.scrollWidth,
+                    height: meetingHall.scrollHeight,
+                    scrollX: 0,
+                    scrollY: 0,
+                    x: 0,
+                    y: 0
+                }).then(canvas => {
+                    // 创建新的画布用于添加标题和边框
+                    const finalCanvas = document.createElement('canvas');
+                    const finalCtx = finalCanvas.getContext('2d');
+                    
+                    // 设置最终画布尺寸
+                    const padding = 40;
+                    const titleHeight = 80;
+                    finalCanvas.width = canvas.width + padding * 2;
+                    finalCanvas.height = canvas.height + padding * 2 + titleHeight;
+                    
+                    // 启用高DPI支持
+                    const devicePixelRatio = window.devicePixelRatio || 1;
+                    finalCanvas.width *= devicePixelRatio;
+                    finalCanvas.height *= devicePixelRatio;
+                    finalCtx.scale(devicePixelRatio, devicePixelRatio);
+                    
+                    // 绘制背景
+                    finalCtx.fillStyle = '#ffffff';
+                    finalCtx.fillRect(0, 0, finalCanvas.width / devicePixelRatio, finalCanvas.height / devicePixelRatio);
+                    
+                    // 绘制标题背景渐变
+                    const titleGradient = finalCtx.createLinearGradient(0, 0, 0, titleHeight);
+                    titleGradient.addColorStop(0, '#2c3e50');
+                    titleGradient.addColorStop(1, '#34495e');
+                    finalCtx.fillStyle = titleGradient;
+                    finalCtx.fillRect(0, 0, finalCanvas.width / devicePixelRatio, titleHeight);
+                    
+                    // 绘制标题文字
+                    finalCtx.fillStyle = '#ffffff';
+                    finalCtx.font = 'bold 24px Microsoft YaHei, Arial, sans-serif';
+                    finalCtx.textAlign = 'center';
+                    finalCtx.textBaseline = 'middle';
+                    finalCtx.fillText('宴会座位安排截图', finalCanvas.width / (2 * devicePixelRatio), titleHeight / 2);
+                    
+                    // 绘制副标题（日期）
+                    finalCtx.fillStyle = '#ecf0f1';
+                    finalCtx.font = '16px Microsoft YaHei, Arial, sans-serif';
+                    const today = new Date().toLocaleDateString('zh-CN') + ' ' + new Date().toLocaleTimeString('zh-CN');
+                    finalCtx.fillText(`截图时间：${today}`, finalCanvas.width / (2 * devicePixelRatio), titleHeight - 20);
+                    
+                    // 绘制截图内容
+                    finalCtx.drawImage(canvas, padding, titleHeight + padding);
+                    
+                    // 添加边框
+                    finalCtx.strokeStyle = '#dee2e6';
+                    finalCtx.lineWidth = 1;
+                    finalCtx.strokeRect(padding, titleHeight + padding, canvas.width, canvas.height);
+                    
+                    // 导出为图片
+                    finalCanvas.toBlob((blob) => {
+                        if (blob) {
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `会议厅截图_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                            
+                            // 清理画布
+                            finalCanvas.remove();
+                            canvas.remove();
+                            
+                            showMessage('截图导出成功！', 'success');
+                        }
+                    }, 'image/png', 0.95);
+                    
+                }).catch(error => {
+                    console.error('截图失败:', error);
+                    showMessage('截图导出失败：' + error.message, 'error');
+                });
+                
+            } catch (error) {
+                console.error('截图导出失败:', error);
+                showMessage('截图导出失败：' + error.message, 'error');
+            }
+        }
 }
 
 // 初始化应用
