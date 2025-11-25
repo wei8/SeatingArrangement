@@ -229,8 +229,8 @@ class SeatingArrangement {
         // 改进的画布调整逻辑 - 基于实际表格位置
         const tableWidth = 350; // 餐桌元素宽度
         const tableHeight = 350; // 餐桌元素高度
-        const margin = 40; // 边距
-        const extraMargin = 100; // 额外边距，确保有足够的空间
+        const margin = 20; // 边距
+        const extraMargin = 50; // 额外边距，确保有足够的空间
         
         // 计算所有表格的实际边界
         let minX = Infinity, minY = Infinity;
@@ -1153,15 +1153,47 @@ class SeatingArrangement {
         const currentWidth = parseInt(seatingArea.style.width) || seatingArea.offsetWidth;
         const currentHeight = parseInt(seatingArea.style.height) || seatingArea.offsetHeight;
         
-        const neededWidth = Math.max(currentWidth, maxRight + 100);
-        const neededHeight = Math.max(currentHeight, maxBottom + 100);
+        // 设置最小画布尺寸（可以根据需要调整）
+        const minWidth = 800;
+        const minHeight = 600;
+        const margin = 50; // 边距
         
-        if (neededWidth > currentWidth || neededHeight > currentHeight) {
-            seatingArea.style.width = neededWidth + 'px';
-            seatingArea.style.height = neededHeight + 'px';
+        
+        // 计算实际需要的尺寸
+        const neededWidth = Math.max(minWidth, maxRight + margin);
+        const neededHeight = Math.max(minHeight, maxBottom + margin);
+        
+        let needResize = false;
+        let newWidth = currentWidth;
+        let newHeight = currentHeight;
+        
+        // 扩展逻辑
+        if (neededWidth > currentWidth) {
+            newWidth = neededWidth;
+            needResize = true;
+        } else if (neededWidth < currentWidth - margin && currentWidth > minWidth) {
+            // 收缩逻辑：当当前宽度比需要的宽度大至少一个边距，且大于最小宽度时收缩
+            newWidth = neededWidth;
+            needResize = true;
+        }
+        
+        if (neededHeight > currentHeight) {
+            newHeight = neededHeight;
+            needResize = true;
+        } else if (neededHeight < currentHeight - margin && currentHeight > minHeight) {
+            // 收缩逻辑：当当前高度比需要的高度大至少一个边距，且大于最小高度时收缩
+            newHeight = neededHeight;
+            needResize = true;
+        }
+        
+        if (needResize) {
+            seatingArea.style.width = newWidth + 'px';
+            seatingArea.style.height = newHeight + 'px';
             
             seatingArea.classList.add('expanded');
             setTimeout(() => seatingArea.classList.remove('expanded'), 300);
+            
+            console.log(`画布已调整：宽度 ${currentWidth}→${newWidth}px，高度 ${currentHeight}→${newHeight}px`);
         }
     }
 
