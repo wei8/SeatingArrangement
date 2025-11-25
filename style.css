@@ -314,6 +314,19 @@ main {
     position: relative;
 }
 
+/* 背景板样式 */
+.board {
+    background: white;
+    border-radius: 10px;
+    padding: 2rem;
+    width: auto;
+    height: auto;
+    min-height: calc(100% - 32px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    margin: 0 auto;
+    transition: all 0.3s ease;
+}
+
 /* 导出按钮样式 - 现在位于控制区域 */
 .controls .btn-primary {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -429,18 +442,7 @@ main {
     }
 }
 
-.main-area::before {
-    content: '';
-    position: absolute;
-    top: 2rem;
-    left: 2rem;
-    right: 2rem;
-    bottom: 2rem;
-    border: 2px dashed #dee2e6;
-    border-radius: 10px;
-    pointer-events: none;
-    opacity: 0.5;
-}
+/* 已删除.main-area虚线效果 */
 
 .seating-area {
     min-height: 600px;

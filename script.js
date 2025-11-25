@@ -104,10 +104,7 @@ class SeatingArrangement {
         // 控制按钮
         document.getElementById('addTableBtn').addEventListener('click', () => this.addTable());
         document.getElementById('resetBtn').addEventListener('click', () => this.resetLayout());
-        document.getElementById('adjustCanvasBtn').addEventListener('click', () => {
-            console.log('Manual canvas adjustment triggered');
-            this.adjustCanvasSize();
-        });
+        
         document.getElementById('addGuestBtn').addEventListener('click', () => this.addGuest());
         
         // 导入导出按钮事件
@@ -118,11 +115,6 @@ class SeatingArrangement {
         // 导出图片按钮事件
         document.getElementById('exportImageBtn').addEventListener('click', () => this.exportImage());
         
-        // 调试渲染按钮事件
-        document.getElementById('debugRenderBtn').addEventListener('click', () => this.debugRender());
-        
-        // 测试画布调整按钮事件
-        document.getElementById('testCanvasBtn').addEventListener('click', () => this.testCanvasAdjustment());
         
         // 模态框
         document.querySelector('.close').addEventListener('click', () => this.closeModal());
@@ -1398,105 +1390,7 @@ class SeatingArrangement {
         URL.revokeObjectURL(url);
     }
     
-    exportImage() {
-        if (this.tables.length === 0) {
-            showMessage('没有餐桌可以导出！请先添加一些餐桌。', 'warning');
-            return;
-        }
-        
-        try {
-            // 获取seatingArea元素
-            const seatingArea = document.getElementById('seatingArea');
-            if (!seatingArea) {
-                showMessage('找不到座位区域！', 'error');
-                return;
-            }
-            
-            // 创建临时画布
-            const tempCanvas = document.createElement('canvas');
-            const tempCtx = tempCanvas.getContext('2d');
-            
-            // 获取所有餐桌的实际边界
-            const bounds = this.getCanvasBounds();
-            
-            // 设置边距和标题高度
-            const padding = 60;
-            const titleHeight = 80;
-            const cornerRadius = 10;
-            
-            // 设置画布尺寸（增加底部区域高度避免文字重叠）
-            tempCanvas.width = bounds.width + padding * 2;
-            tempCanvas.height = bounds.height + padding * 2 + titleHeight + 80; // 增加80像素底部空间，确保文字不贴边
-            
-            // 绘制背景（圆角矩形）
-            tempCtx.fillStyle = '#ffffff';
-            this.roundRect(tempCtx, 0, 0, tempCanvas.width, tempCanvas.height, cornerRadius);
-            tempCtx.fill();
-            
-            // 绘制标题
-            tempCtx.fillStyle = '#2c3e50';
-            tempCtx.font = 'bold 24px Microsoft YaHei, Arial, sans-serif';
-            tempCtx.textAlign = 'center';
-            tempCtx.fillText('座位安排图', tempCanvas.width / 2, 35);
-            
-            // 绘制副标题（日期）
-            tempCtx.fillStyle = '#7f8c8d';
-            tempCtx.font = '14px Microsoft YaHei, Arial, sans-serif';
-            const today = new Date().toLocaleDateString('zh-CN');
-            tempCtx.fillText(`导出日期：${today}`, tempCanvas.width / 2, 60);
-            
-            // 绘制分隔线
-            tempCtx.strokeStyle = '#e0e0e0';
-            tempCtx.lineWidth = 1;
-            tempCtx.beginPath();
-            tempCtx.moveTo(padding, tempCanvas.height - 80);
-            tempCtx.lineTo(tempCanvas.width - padding, tempCanvas.height - 80);
-            tempCtx.stroke();
-            
-            // 绘制统计信息（调整到更合适的位置）
-            tempCtx.fillStyle = '#34495e';
-            tempCtx.font = '12px Microsoft YaHei, Arial, sans-serif';
-            tempCtx.textAlign = 'left';
-            const infoY = tempCanvas.height - 60; 
-            tempCtx.fillText(`餐桌数量：${this.tables.length}`, padding, infoY);
-            tempCtx.fillText(`客人总数：${this.guests.length}`, padding, infoY + 20);
-            tempCtx.fillText(`已安排：${this.guests.filter(g => g.tableId !== null).length} 人`, padding, infoY + 40);
-            
-            // 调整坐标系，为餐桌内容留出空间
-            tempCtx.translate(padding - bounds.minX, titleHeight + padding - bounds.minY);
-            
-            // 使用html2canvas库的思路，手动绘制所有餐桌
-            this.tables.forEach(table => {
-                this.drawTableOnCanvas(tempCtx, table);
-            });
-            
-            // 添加边框
-            tempCtx.strokeStyle = '#e0e0e0';
-            tempCtx.lineWidth = 1;
-            tempCtx.strokeRect(-padding + bounds.minX, -titleHeight - padding + bounds.minY, tempCanvas.width, tempCanvas.height);
-            
-            // 导出为图片
-            tempCanvas.toBlob((blob) => {
-                if (blob) {
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `座位安排图_${new Date().toISOString().slice(0, 10)}.png`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                    
-                    // 清理临时画布
-                    tempCanvas.remove();
-                }
-            }, 'image/png', 0.95);
-            
-        } catch (error) {
-            console.error('导出图片失败:', error);
-            showMessage('导出图片失败：' + error.message, 'error');
-        }
-    }
+    
     
     drawTableOnCanvas(ctx, table) {
         const radius = 125; // 餐桌半径，与createSeats方法保持一致
@@ -1577,33 +1471,6 @@ class SeatingArrangement {
         ctx.lineTo(x, y + radius);
         ctx.quadraticCurveTo(x, y, x + radius, y);
         ctx.closePath();
-    }
-    
-    getCanvasBounds() {
-        let minX = Infinity, minY = Infinity;
-        let maxX = -Infinity, maxY = -Infinity;
-        
-        // 计算所有餐桌的边界
-        this.tables.forEach(table => {
-            const radius = 125; // 餐桌半径，与createSeats方法保持一致
-            
-            minX = Math.min(minX, table.x - radius);
-            minY = Math.min(minY, table.y - radius);
-            maxX = Math.max(maxX, table.x + radius);
-            maxY = Math.max(maxY, table.y + radius);
-        });
-        
-        // 如果没有餐桌，使用默认边界
-        if (minX === Infinity) {
-            return { minX: 0, minY: 0, width: 800, height: 600 };
-        }
-        
-        return {
-            minX,
-            minY,
-            width: maxX - minX,
-            height: maxY - minY
-        };
     }
     
     // 本地存储相关方法

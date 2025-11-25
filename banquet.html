@@ -123,11 +123,11 @@
             </div>
             <div class="controls">
                     <button id="addTableBtn" class="btn btn-primary">添加餐桌</button>
-                    <button id="resetBtn" class="btn btn-secondary">重置布局</button>
-                    <button id="adjustCanvasBtn" class="btn btn-secondary" style="background: #6c757d; border-color: #6c757d;">调整画布</button>
-                    <button id="testCanvasBtn" class="btn btn-secondary" style="background: #28a745; border-color: #28a745;">测试画布</button>
-                    <button id="exportImageBtn" class="btn btn-primary">导出图片</button>
-                    <button id="debugRenderBtn" class="btn btn-secondary">调试渲染</button>
+                    <button id="resetBtn" class="btn btn-secondary">重置</button>
+                    <!-- <button id="adjustCanvasBtn" class="btn btn-secondary" style="background: #6c757d; border-color: #6c757d;">调整画布</button> -->
+                    <!-- <button id="testCanvasBtn" class="btn btn-secondary" style="background: #28a745; border-color: #28a745;">测试画布</button> -->
+                    <button id="exportImageBtn" class="btn btn-primary">导出</button>
+                    <!-- <button id="debugRenderBtn" class="btn btn-secondary">调试渲染</button> -->
                     <div id="saveStatus" class="save-status">
                         <span class="save-indicator"></span>
                         <span class="save-text">自动保存中...</span>
@@ -156,8 +156,10 @@
             </div>
             
             <div class="main-area">
-                <div id="seatingArea" class="seating-area">
-                    <!-- 餐桌将在这里动态生成 -->
+                <div class="board">
+                    <div id="seatingArea" class="seating-area">
+                        <!-- 餐桌将在这里动态生成 -->
+                    </div>
                 </div>
             </div>
         </main>
