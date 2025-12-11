@@ -1,6 +1,6 @@
 // 全局模态框函数
 // 静态变量定义
-const MIN_AUDIENCE_WIDTH = 1500; // 观众席最小宽度
+const MIN_AUDIENCE_WIDTH = 1200; // 观众席最小宽度
 const MIN_AUDIENCE_HEIGHT = 600; // 观众席最小高度
 
 function showModal(message, title = '提示', type = 'info') {
@@ -269,6 +269,12 @@ class SeatingArrangement {
                 table.occupiedSeatColor = '#4682B4'; // 默认占用座位颜色
             }
         });
+        
+        // 添加窗口大小改变事件监听器
+        window.addEventListener('resize', () => {
+            console.log('Window resized, adjusting canvas...');
+            this.adjustCanvasSize();
+        });
     }
     
     addDefaultTable() {
@@ -399,12 +405,17 @@ class SeatingArrangement {
         const neededWidth = contentWidth + margin * 2 + extraMargin;
         const neededHeight = contentHeight + margin * 2 + extraMargin;
         
-        // 设置最小尺寸
+        // 设置最小尺寸 - 增加窗口宽度的考虑
         const minWidth = MIN_AUDIENCE_WIDTH;
         const minHeight = MIN_AUDIENCE_HEIGHT;
         
-        const finalWidth = Math.max(minWidth, neededWidth);
+        // 获取当前窗口宽度
+        const windowWidth = window.innerWidth - 300 - 64*2;
+        // 计算画布所需的最小宽度：取窗口宽度、最小宽度和餐桌内容所需宽度的最大值
+        const finalWidth = Math.max(windowWidth, minWidth, neededWidth);
         const finalHeight = Math.max(minHeight, neededHeight);
+        
+        console.log(`Window width: ${windowWidth}px, taking max with ${minWidth}px and ${neededWidth}px`);
         
         console.log(`Final canvas size: ${finalWidth}x${finalHeight}px`);
         
@@ -413,6 +424,14 @@ class SeatingArrangement {
         seatingArea.style.minHeight = finalHeight + 'px';
         seatingArea.style.width = finalWidth + 'px';
         seatingArea.style.height = finalHeight + 'px';
+        
+        // 设置 seatingBoard 的最小宽度为窗口宽度减300px再减64px
+        const seatingBoard = document.getElementById('seatingBoard');
+        if (seatingBoard) {
+            const minBoardWidth = window.innerWidth - 300 - 64;
+            seatingBoard.style.minWidth = minBoardWidth + 'px';
+            console.log(`Set seatingBoard min-width to ${minBoardWidth}px (window width: ${window.innerWidth}px - 300px - 64px)`);
+        }
         
         console.log('基于实际位置调整画布尺寸:');
         console.log('  内容边界:', { minX, minY, maxX, maxY });
@@ -1398,6 +1417,14 @@ class SeatingArrangement {
         seatingArea.style.width = newWidth + 'px';
         seatingArea.style.height = newHeight + 'px';
         
+        // 设置 seatingBoard 的最小宽度为窗口宽度减300px再减64px
+        const seatingBoard = document.getElementById('seatingBoard');
+        if (seatingBoard) {
+            const minBoardWidth = window.innerWidth - 300 - 64;
+            seatingBoard.style.minWidth = minBoardWidth + 'px';
+            console.log(`Set seatingBoard min-width to ${minBoardWidth}px (window width: ${window.innerWidth}px - 300px - 64px)`);
+        }
+        
         // 添加扩展动画效果
         seatingArea.classList.add('expanding');
         setTimeout(() => seatingArea.classList.remove('expanding'), 500);
@@ -1463,6 +1490,14 @@ class SeatingArrangement {
         if (needResize) {
             seatingArea.style.width = newWidth + 'px';
             seatingArea.style.height = newHeight + 'px';
+            
+            // 设置 seatingBoard 的最小宽度为窗口宽度减300px再减64px
+            const seatingBoard = document.getElementById('seatingBoard');
+            if (seatingBoard) {
+                const minBoardWidth = window.innerWidth - 300 - 64;
+                seatingBoard.style.minWidth = minBoardWidth + 'px';
+                console.log(`Set seatingBoard min-width to ${minBoardWidth}px (window width: ${window.innerWidth}px - 300px - 64px)`);
+            }
             
             seatingArea.classList.add('expanded');
             setTimeout(() => seatingArea.classList.remove('expanded'), 300);
