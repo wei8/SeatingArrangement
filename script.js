@@ -29,6 +29,19 @@ function showModal(message, title = '提示', type = 'info') {
             color = '#f39c12';
             break;
     }
+}
+
+// 颜色重置功能
+function resetTableColor() {
+    document.getElementById('tableColorInput').value = '#87CEEB';
+}
+
+function resetSeatColor() {
+    document.getElementById('seatColorInput').value = '#87CEEB';
+}
+
+function resetOccupiedSeatColor() {
+    document.getElementById('occupiedSeatColorInput').value = '#4682B4';
     
     modal.innerHTML = `
         <div class="modal-content" style="width: 350px; text-align: center;">
@@ -137,6 +150,21 @@ function showMessage(message, type = 'info') {
     }, 3000);
 }
 
+// 重置餐桌颜色为默认值
+function resetTableColor() {
+    document.getElementById('tableColorInput').value = '#87CEEB';
+}
+
+// 重置座位颜色为默认值
+function resetSeatColor() {
+    document.getElementById('seatColorInput').value = '#87CEEB';
+}
+
+// 重置占用座位颜色为默认值
+function resetOccupiedSeatColor() {
+    document.getElementById('occupiedSeatColorInput').value = '#4682B4';
+}
+
 class SeatingArrangement {
     constructor() {
         this.tables = [];
@@ -172,6 +200,33 @@ class SeatingArrangement {
         console.log('SeatingArrangement constructor completed');
     }
     
+    // 辅助方法：将颜色变暗指定百分比
+    darkenColor(color, percent) {
+        // 移除#号
+        color = color.replace('#', '');
+        
+        // 解析RGB值
+        let r = parseInt(color.substring(0, 2), 16);
+        let g = parseInt(color.substring(2, 4), 16);
+        let b = parseInt(color.substring(4, 6), 16);
+        
+        // 计算变暗后的颜色
+        r = Math.floor(r * (1 - percent / 100));
+        g = Math.floor(g * (1 - percent / 100));
+        b = Math.floor(b * (1 - percent / 100));
+        
+        // 确保颜色值在0-255之间
+        r = Math.max(0, r);
+        g = Math.max(0, g);
+        b = Math.max(0, b);
+        
+        // 转换回十六进制格式
+        const hex = ((r << 16) | (g << 8) | b).toString(16);
+        
+        // 确保结果是6位十六进制数
+        return '#' + '000000'.substring(0, 6 - hex.length) + hex;
+    }
+    
     initializeEventListeners() {
         // 控制按钮
         document.getElementById('addTableBtn').addEventListener('click', () => this.addTable());
@@ -204,6 +259,16 @@ class SeatingArrangement {
                 this.closeModal();
             }
         });
+        
+        // 为现有餐桌添加默认颜色配置（如果没有的话）
+        this.tables.forEach(table => {
+            if (!table.seatColor) {
+                table.seatColor = '#87CEEB'; // 默认座位颜色
+            }
+            if (!table.occupiedSeatColor) {
+                table.occupiedSeatColor = '#4682B4'; // 默认占用座位颜色
+            }
+        });
     }
     
     addDefaultTable() {
@@ -217,7 +282,9 @@ class SeatingArrangement {
             seatCount: 12,
             x: position.x,
             y: position.y,
-            guests: []
+            guests: [],
+            seatColor: '#87CEEB', // 默认座位颜色
+            occupiedSeatColor: '#4682B4' // 默认占用座位颜色
         };
         
         console.log('Created table:', table);
@@ -237,7 +304,9 @@ class SeatingArrangement {
             seatCount: 12,
             x: position.x,
             y: position.y,
-            guests: []
+            guests: [],
+            seatColor: '#87CEEB', // 默认座位颜色
+            occupiedSeatColor: '#4682B4' // 默认占用座位颜色
         };
         this.tables.push(table);
         this.renderTables();
@@ -468,7 +537,9 @@ class SeatingArrangement {
         // 创建编辑模态框
         const modal = document.createElement('div');
         modal.className = 'modal';
-        modal.style.display = 'block';
+        modal.style.display = 'flex';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
         modal.innerHTML = `
             <div class="modal-content" style="max-width: 400px;">
                 <span class="close">&times;</span>
@@ -607,10 +678,27 @@ class SeatingArrangement {
         tableDiv.style.top = table.y + 'px';
         tableDiv.dataset.tableId = table.id;
         
+        // 根据餐桌直径设置大小，默认240px
+        const diameter = table.diameter || 240;
+        // 餐桌容器尺寸需要比圆形大，留出座位的空间
+        const containerSize = diameter + 100; // 直径加上100px作为边距
+        tableDiv.style.width = containerSize + 'px';
+        tableDiv.style.height = containerSize + 'px';
+        
         // 餐桌圆形
         const tableCircle = document.createElement('div');
         tableCircle.className = 'table-circle';
-        tableCircle.textContent = table.name;
+        // 支持使用|作为换行符
+        const displayName = table.name.replace(/\|/g, '<br>');
+        tableCircle.innerHTML = displayName;
+        tableCircle.style.width = diameter + 'px';
+        tableCircle.style.height = diameter + 'px';
+        // 设置餐桌颜色
+        if (table.tableColor) {
+            // 创建基于所选颜色的渐变
+            tableCircle.style.background = `linear-gradient(135deg, ${table.tableColor} 0%, ${this.darkenColor(table.tableColor, 20)} 100%)`;
+        }
+        
         tableDiv.appendChild(tableCircle);
         
         // 创建座位
@@ -636,12 +724,19 @@ class SeatingArrangement {
     
     createSeats(tableDiv, table) {
         const seatCount = table.seatCount;
-        const radius = 145; // 调整座位距离，使座位与圆桌间距更合理（圆桌半径120，间距25px）
+        // 根据餐桌直径计算座位半径，确保座位始终围绕在餐桌周围
+        const diameter = table.diameter || 240;
+        const tableRadius = diameter / 2;
+        const radius = tableRadius + 25; // 餐桌半径加上25px的间距
+        // 计算容器尺寸，与createTableElement方法保持一致
+        const containerSize = diameter + 100;
         
         for (let i = 0; i < seatCount; i++) {
             const angle = (i * 2 * Math.PI) / seatCount - Math.PI / 2; // 从顶部开始
-            const x = Math.cos(angle) * radius + 175; // 175是餐桌中心位置（350px方框的中心）
-            const y = Math.sin(angle) * radius + 175;
+            const centerX = containerSize / 2; // 使用动态计算的容器尺寸
+            const centerY = containerSize / 2;
+            const x = Math.cos(angle) * radius + centerX;
+            const y = Math.sin(angle) * radius + centerY;
             
             const seat = document.createElement('div');
             seat.className = 'seat';
@@ -656,6 +751,32 @@ class SeatingArrangement {
             
             // 检查是否有客人坐在这里
             const guest = table.guests.find(g => g.seatNumber === i + 1);
+            
+            // 设置座位颜色（优先级：座位单独配置 > 占用座位默认 > 普通座位默认）
+            let finalColor = null;
+            
+            // 1. 检查是否有座位单独配置的颜色
+            if (table.seatsColors && table.seatsColors[i + 1]) {
+                finalColor = table.seatsColors[i + 1];
+            } 
+            // 2. 检查是否为占用座位且有餐桌默认的占用座位颜色
+            else if (guest && table.occupiedSeatColor) {
+                finalColor = table.occupiedSeatColor;
+            }
+            // 3. 使用餐桌默认的普通座位颜色
+            else if (table.seatColor) {
+                finalColor = table.seatColor;
+            }
+            
+            // 应用颜色
+            if (finalColor) {
+                seat.style.background = finalColor;
+            } else {
+                // 清除内联样式，使用CSS默认值
+                seat.style.background = '';
+            }
+            
+            // 设置客人信息
             if (guest) {
                 seat.classList.add('occupied');
                 seat.textContent = guest.name; // 只显示姓名
@@ -888,6 +1009,13 @@ class SeatingArrangement {
         
         modalHTML += `
                 </select>
+                
+                <div style="margin: 1rem 0;">
+                    <label for="seatColorSelect">座位颜色:</label>
+                    <input type="color" id="seatColorSelect" style="width: 100%; padding: 0.2rem; margin: 0.5rem 0; height: 40px;">
+                    <button onclick="window.seatingApp.resetSeatColor(${table.id}, ${seatNumber});" class="btn btn-secondary" style="width: 100%; margin-top: 0.5rem;">颜色重置</button>
+                    <small>留空则使用餐桌默认颜色</small>
+                </div>
             </div>
             <div style="text-align: right; margin-top: 1rem;">
                 <button onclick="this.closest('.seat-edit-modal').remove()" class="btn btn-secondary">取消</button>
@@ -898,6 +1026,17 @@ class SeatingArrangement {
         content.innerHTML = modalHTML;
         modal.appendChild(content);
         document.body.appendChild(modal);
+        
+        // 设置当前座位颜色
+        const colorSelect = document.getElementById('seatColorSelect');
+        if (table.seatsColors && table.seatsColors[seatNumber]) {
+            colorSelect.value = table.seatsColors[seatNumber];
+        } else {
+            // 移除value属性，而不是设置为空字符串
+            colorSelect.removeAttribute('value');
+            // 对于不支持removeAttribute的浏览器，设置为默认的空值显示
+            colorSelect.value = '';
+        }
         
         // 保存引用以便全局访问
         window.seatingApp = this;
@@ -932,19 +1071,65 @@ class SeatingArrangement {
     saveSeatEdit(tableId, seatNumber) {
         const select = document.getElementById('guestSelect');
         const guestId = select.value;
+        const colorInput = document.getElementById('seatColorSelect');
+        const seatColor = colorInput.value;
         
-        if (guestId) {
-            const guest = this.guests.find(g => g.id == guestId);
-            const table = this.tables.find(t => t.id == tableId);
-            if (guest && table) {
-                this.assignGuestToSeat(guest, table, seatNumber);
+        const table = this.tables.find(t => t.id == tableId);
+        if (table) {
+            // 确保table对象有seatsColors属性
+            if (!table.seatsColors) {
+                table.seatsColors = {};
             }
+            
+            // 保存或清除座位颜色
+            // 如果颜色是黑色(#000000)，视为空值不保存
+            if (seatColor && seatColor !== '#000000') {
+                table.seatsColors[seatNumber] = seatColor;
+            } else {
+                delete table.seatsColors[seatNumber];
+            }
+            
+            // 如果选择了客人，分配客人
+            if (guestId) {
+                const guest = this.guests.find(g => g.id == guestId);
+                if (guest) {
+                    this.assignGuestToSeat(guest, table, seatNumber);
+                }
+            }
+            
+            // 重新渲染表格以应用颜色变化
+            this.renderTables();
         }
         
         // 关闭模态框
         const modal = document.querySelector('.seat-edit-modal');
         if (modal) {
             modal.remove();
+        }
+    }
+    
+    resetSeatColor(tableId, seatNumber) {
+        const table = this.tables.find(t => t.id == tableId);
+        if (table) {
+            // 确保table对象有seatsColors属性
+            if (!table.seatsColors) {
+                table.seatsColors = {};
+            }
+            
+            // 删除该座位的单独颜色配置
+            delete table.seatsColors[seatNumber];
+            
+            // 清空颜色选择器
+            const colorInput = document.getElementById('seatColorSelect');
+            if (colorInput) {
+                // 移除value属性，而不是设置为空字符串
+                colorInput.removeAttribute('value');
+                // 对于不支持removeAttribute的浏览器，设置为默认的空值显示
+                colorInput.value = '';
+            }
+            
+            // 重新渲染表格以应用颜色变化
+            this.renderTables();
         }
     }
     
@@ -1001,16 +1186,33 @@ class SeatingArrangement {
         this.selectedTable = table;
         document.getElementById('tableNameInput').value = table.name;
         document.getElementById('seatCountInput').value = table.seatCount;
-        document.getElementById('tableSettingsModal').style.display = 'block';
+        // 设置直径输入字段的值，默认240px
+        document.getElementById('tableDiameterInput').value = table.diameter || 240;
+        // 设置颜色输入字段的值，使用默认值如果不存在
+        document.getElementById('tableColorInput').value = table.tableColor || '#87CEEB';
+        document.getElementById('seatColorInput').value = table.seatColor || '#87CEEB';
+        document.getElementById('occupiedSeatColorInput').value = table.occupiedSeatColor || '#4682B4';
+        const modal = document.getElementById('tableSettingsModal');
+        modal.style.display = 'flex';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
     }
     
     saveTableSettings() {
         if (this.selectedTable) {
             const newName = document.getElementById('tableNameInput').value.trim();
             const newSeatCount = parseInt(document.getElementById('seatCountInput').value);
+            const newDiameter = parseInt(document.getElementById('tableDiameterInput').value);
+            const newTableColor = document.getElementById('tableColorInput').value;
+            const newSeatColor = document.getElementById('seatColorInput').value;
+            const newOccupiedSeatColor = document.getElementById('occupiedSeatColorInput').value;
             
-            if (newName && newSeatCount >= 4 && newSeatCount <= 20) {
+            if (newName && newSeatCount >= 4 && newSeatCount <= 20 && newDiameter >= 100 && newDiameter <= 600) {
                 this.selectedTable.name = newName;
+                this.selectedTable.diameter = newDiameter;
+                this.selectedTable.tableColor = newTableColor;
+                this.selectedTable.seatColor = newSeatColor;
+                this.selectedTable.occupiedSeatColor = newOccupiedSeatColor;
                 
                 // 如果座位数量改变，需要重新安排客人
                 if (newSeatCount !== this.selectedTable.seatCount) {

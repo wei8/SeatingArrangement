@@ -517,6 +517,14 @@ main {
     font-weight: bold;
     color: #fff; /* 白色文字，与蓝色背景对比更好 */
     transition: all 0.3s ease;
+    text-align: center;
+    white-space: normal; /* 允许文本换行 */
+    line-height: 1.3; /* 调整行高以改善多行文本显示 */
+    padding: 20px; /* 添加内边距，确保文本不会紧贴边缘 */
+    /* 确保文本完全水平居中 */
+    text-indent: 0;
+    margin: 0;
+    overflow: visible;
 }
 
 .table-circle:hover {
@@ -596,12 +604,12 @@ main {
 
 .modal-content {
     background-color: white;
-    margin: 15% auto;
     padding: 2rem;
     border-radius: 10px;
     width: 400px;
     max-width: 90%;
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    animation: slideIn 0.3s ease;
 }
 
 /* 座位编辑模态框样式 */
@@ -828,6 +836,34 @@ main {
     border-radius: 4px;
     font-size: 14px;
     transition: border-color 0.3s ease;
+}
+
+.color-input-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.color-input-group input[type="color"] {
+    width: 60px;
+    height: 40px;
+    padding: 2px;
+    cursor: pointer;
+}
+
+.reset-color-btn {
+    padding: 8px 15px;
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+}
+
+.reset-color-btn:hover {
+    background-color: #5a6268;
 }
 
 .form-group input:focus {

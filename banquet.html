@@ -178,6 +178,31 @@
                 <label for="seatCountInput">座位数量:</label>
                 <input type="number" id="seatCountInput" min="4" max="20" value="12">
             </div>
+            <div class="form-group">
+                <label for="tableDiameterInput">餐桌直径(px):</label>
+                <input type="number" id="tableDiameterInput" min="100" max="600" value="240">
+            </div>
+            <div class="form-group">
+                <label for="tableColorInput">餐桌颜色:</label>
+                <div class="color-input-group">
+                    <input type="color" id="tableColorInput" value="#87CEEB">
+                    <button type="button" class="reset-color-btn" onclick="resetTableColor()">重置</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="seatColorInput">座位颜色:</label>
+                <div class="color-input-group">
+                    <input type="color" id="seatColorInput" value="#87CEEB">
+                    <button type="button" class="reset-color-btn" onclick="resetSeatColor()">重置</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="occupiedSeatColorInput">占用座位颜色:</label>
+                <div class="color-input-group">
+                    <input type="color" id="occupiedSeatColorInput" value="#4682B4">
+                    <button type="button" class="reset-color-btn" onclick="resetOccupiedSeatColor()">重置</button>
+                </div>
+            </div>
             <div class="modal-buttons">
                 <button id="saveTableSettings" class="btn btn-primary">保存</button>
                 <button id="deleteTable" class="btn btn-danger">删除餐桌</button>
