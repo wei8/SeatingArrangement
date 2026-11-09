@@ -7,6 +7,7 @@
     <link rel="icon" href="image/favicon.ico" type="image/x-icon">
     <link rel="shortcut icon" href="image/favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         /* 添加与meeting.html相同的header样式 */
         header {
@@ -148,7 +149,7 @@
                     <button id="addGuestBtn" class="btn btn-small">添加客人</button>
                 </div>
                 <div class="import-controls">
-                    <input type="file" id="guestImportFile" accept=".json,.csv" style="display: none;">
+                    <input type="file" id="guestImportFile" accept=".json,.csv,.xlsx,.xls" style="display: none;">
                     <button id="importGuestsBtn" class="btn btn-small btn-secondary">导入客人</button>
                     <button id="exportGuestsBtn" class="btn btn-small btn-secondary">导出客人</button>
                 </div>
@@ -176,7 +177,7 @@
             </div>
             <div class="form-group">
                 <label for="seatCountInput">座位数量:</label>
-                <input type="number" id="seatCountInput" min="4" max="20" value="12">
+                <input type="number" id="seatCountInput" min="4" max="30" value="12">
             </div>
             <div class="form-group">
                 <label for="tableDiameterInput">餐桌直径(px):</label>

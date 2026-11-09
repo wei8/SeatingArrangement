@@ -1226,7 +1226,7 @@ class SeatingArrangement {
             const newSeatColor = document.getElementById('seatColorInput').value;
             const newOccupiedSeatColor = document.getElementById('occupiedSeatColorInput').value;
             
-            if (newName && newSeatCount >= 4 && newSeatCount <= 20 && newDiameter >= 100 && newDiameter <= 600) {
+            if (newName && newSeatCount >= 4 && newSeatCount <= 30 && newDiameter >= 100 && newDiameter <= 600) {
                 this.selectedTable.name = newName;
                 this.selectedTable.diameter = newDiameter;
                 this.selectedTable.tableColor = newTableColor;
@@ -1600,8 +1600,10 @@ class SeatingArrangement {
                     guestsData = JSON.parse(content);
                 } else if (file.name.toLowerCase().endsWith('.csv')) {
                     guestsData = this.parseCSV(content);
+                } else if (file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls')) {
+                    guestsData = this.parseExcel(content);
                 } else {
-                    showMessage('不支持的文件格式！请上传JSON或CSV文件。', 'error');
+                    showMessage('不支持的文件格式！请上传JSON、CSV或Excel文件。', 'error');
                     return;
                 }
                 
@@ -1622,7 +1624,12 @@ class SeatingArrangement {
             }
         };
         
-        reader.readAsText(file);
+        // 根据文件类型选择读取方式
+        if (file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls')) {
+            reader.readAsArrayBuffer(file);
+        } else {
+            reader.readAsText(file);
+        }
         // 清空文件输入，允许重复导入同一文件
         event.target.value = '';
     }
@@ -1666,6 +1673,59 @@ class SeatingArrangement {
         return guests;
     }
     
+    parseExcel(buffer) {
+        // 使用SheetJS库解析Excel文件
+        const workbook = XLSX.read(buffer, { type: 'array' });
+        
+        // 读取第一个工作表
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        
+        // 将工作表转换为JSON格式
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        
+        // 支持的字段映射
+        const fieldMap = {
+            'name': ['name', '姓名', 'name', '客人姓名'],
+            'position': ['position', '职务', '职位', 'title'],
+            'company': ['company', '公司', '单位', 'organization']
+        };
+        
+        const guests = [];
+        
+        jsonData.forEach(row => {
+            const guest = {
+                name: '',
+                position: '',
+                company: ''
+            };
+            
+            // 遍历行数据，根据字段映射找到对应的值
+            Object.keys(row).forEach(key => {
+                const lowerKey = key.toLowerCase();
+                
+                if (fieldMap.name.some(name => name.includes(lowerKey))) {
+                    guest.name = row[key] || '';
+                } else if (fieldMap.position.some(pos => pos.includes(lowerKey))) {
+                    guest.position = row[key] || '';
+                } else if (fieldMap.company.some(comp => comp.includes(lowerKey))) {
+                    guest.company = row[key] || '';
+                }
+            });
+            
+            if (guest.name) { // 只导入有姓名的客人
+                guests.push(guest);
+            }
+        });
+        
+        // 验证必要字段
+        if (guests.length === 0) {
+            throw new Error('Excel文件必须包含姓名字段');
+        }
+        
+        return guests;
+    }
+    
     validateGuestData(guestsData) {
         if (!Array.isArray(guestsData) || guestsData.length === 0) {
             return false;
@@ -1698,37 +1758,38 @@ class SeatingArrangement {
     }
     
     exportGuests() {
-        // 准备CSV格式的数据
-        const csvHeaders = ['姓名', '职位', '公司'];
-        const csvRows = this.guests.map(guest => [
-            guest.name,
-            guest.position,
-            guest.company
-        ]);
+        // 准备导出数据
+        const exportData = this.guests.map(guest => ({
+            '姓名': guest.name,
+            '职务': guest.position,
+            '公司': guest.company
+        }));
         
-        // 构建CSV内容（使用UTF-8 BOM确保中文正常显示）
-        const csvContent = '\uFEFF' + csvHeaders.join(',') + '\n' + 
-            csvRows.map(row => 
-                row.map(field => {
-                    // 处理包含逗号或引号的字段
-                    const fieldStr = String(field || '');
-                    if (fieldStr.includes(',') || fieldStr.includes('"')) {
-                        return '"' + fieldStr.replace(/"/g, '""') + '"';
-                    }
-                    return fieldStr;
-                }).join(',')
-            ).join('\n');
+        // 使用SheetJS导出Excel文件
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, '客人名单');
         
-        // 创建下载链接
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+        // 设置列宽
+        worksheet['!cols'] = [
+            { wch: 20 },  // 姓名列宽
+            { wch: 20 },  // 职务列宽
+            { wch: 30 }   // 公司列宽
+        ];
+        
+        // 生成Excel文件并下载
+        const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `客人名单_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.download = `客人名单_${new Date().toISOString().slice(0, 10)}.xlsx`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+        
+        showMessage('客人名单导出成功！', 'success');
     }
     
     
